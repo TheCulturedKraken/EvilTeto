@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const Discord = require("discord.js");
 const DiscordVoice = require("@discordjs/voice")
 const client = new Discord.Client({ intents : [
@@ -9,7 +11,7 @@ const client = new Discord.Client({ intents : [
 ]});
 
 const Busy = new Map()
-const token = require("./token.js")
+const token = process.env.TOKEN
 const Commands = require('./commands.js')
 const VoiceCommands = require('./voicecommands.js')
 const Hangman = require('./hangman.js');
