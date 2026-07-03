@@ -31,24 +31,12 @@ client.on('clientReady', () => {
 //============================================================================================
 // Personality Block
 //============================================================================================
-const MeanTargets = {
-    '485675003354808320': 0.01 , //Kraken, 1%
-    '997186885011120138': 0.05 , //V, 5%
-    '341642668675301376': 0.15 , //Winston, 15%
-    '287364463877685251': 0.05 , //Griffin, 5%
-    '721142232417173535': 0.05 , //Jasmine, 50%
-    '670390082208923686': 0.67 , //Saiphex, 67%
-    '526612976766287904': 0.50 , //Scarfty, 50%
-    '746391979717558302': 0.21 , //Dawson, 21%
-    '427863057906008094': 0.50 , //Delumine, 50%
-    '1228610030362693724': 0.20 , //Lena, 20%
-    '571972159631523850': 0.50 , //Krayt, 50%
-    '313125650338676736': 0.01 , //Danhotshot, 1%
-    '871920856719310898': 0.99, //Dem 100%
-}
 
 const meanRoles = {
-    '1476927536490352671': 0.01 , //Ashbourne Bloodlines, 1%
+    'Teto Hate': 0.05 , //Casual Hate, 5%
+    'Super Teto Hate': 0.10 , //Super Hate, 10%
+    'Ultra Teto Hate': 0.30 , // Ultra Teto Hate, 30%
+    'Pure Teto Spite': 0.90 , //Yeah fuck them bro, 90%
 }
 
 client.on('messageCreate', msg => {
@@ -63,10 +51,10 @@ client.on('messageCreate', msg => {
         }
     }
     
-    let chance = MeanTargets[msg.author.id] || 0;    
+    let chance =  0;    
     
     for (const [roleId, rollChance] of Object.entries(meanRoles)) {
-        if (msg.member.roles.cache.has(roleId)) {
+        if (msg.member.roles.cache.some(role => role.name == roleId)) {
             chance = Math.max(chance, rollChance);
         }
     }
@@ -76,6 +64,7 @@ client.on('messageCreate', msg => {
     if (Math.random() < chance) {
         Commands.saySomethingMean(msg)
     }
+
     } catch(err) {
         console.error(err)
         msg.reply("I fucked up")
