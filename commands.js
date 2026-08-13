@@ -262,6 +262,26 @@ async function leaveServer(msg) {
     await msg.guild.leave();
 }
 
+async function closeTicket(msg) {
+    if (!isItBoss(msg.author.id)) {
+        return msg.reply("I'll wait for the boss to call it.")
+    }
+
+    try {
+        await msg.reply("Aight, closing this out in 5 seconds...")
+        setTimeout(async () => {
+            try {
+                await msg.channel.delete();
+            } catch (err) {
+                console.error(err)
+            }
+        }, 5000);
+    } catch (err) {
+        console.error(err)
+        msg.reply("I fucked up")
+    }
+}
+
 module.exports = {
     isItBoss,
     memberCount,
@@ -276,4 +296,5 @@ module.exports = {
     confirmAction,
     slaughter,
     leaveServer,
+    closeTicket,
 }
