@@ -3,6 +3,8 @@ require('dotenv').config()
 
 const Discord = require("discord.js");
 const DiscordVoice = require("@discordjs/voice")
+const PermissionFlagBits = Discord.PermissionFlagsBits
+const { ChannelType } = require("discord.js")
 const client = new Discord.Client({ intents : [
     Discord.GatewayIntentBits.Guilds,
     Discord.GatewayIntentBits.GuildMessages,
@@ -10,7 +12,7 @@ const client = new Discord.Client({ intents : [
     Discord.GatewayIntentBits.GuildModeration,
     Discord.GatewayIntentBits.GuildVoiceStates,
     Discord.GatewayIntentBits.GuildMessageReactions,
-    Discord.GatewayIntentBits.GuildMembers
+    Discord.GatewayIntentBits.GuildMembers,
 ], partials: [
     Discord.Partials.Message,
     Discord.Partials.Channel,
@@ -33,7 +35,7 @@ const Hangman = require('./hangman.js');
 
 const Casino = require("./casino/CasinoRouter.js")
 const economyModule = require("./casino/economy.js");
-const activeCasinoGames = require('./casino/activeGames')
+const activeCasinoGames = require('./casino/activeGames');
 
 client.on('clientReady', () => {
     console.log('Logged in as ' + client.user.tag + '!')
@@ -123,6 +125,8 @@ client.on('messageCreate', async msg => {
         try {await Commands.maybeConfirm(msg, () => Commands.slaughter(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     } else if (msg.content == "yo Teto, they don't deserve you here, just leave em") {
         try {await Commands.maybeConfirm(msg, () => Commands.leaveServer(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    } else if (msg.content === "yo Teto, close this ticket") {
+    try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     }
 })
 
@@ -261,8 +265,8 @@ client.on("messageReactionAdd", async (reaction, user) => {
 
     // Does the emoji match one of our configured roles?
     const roleId = config[reaction.emoji.name];
-
     if (!roleId) return;
+
     try {
         // Fetch member
         const member = await reaction.message.guild.members.fetch(user.id);
@@ -291,6 +295,57 @@ client.on("messageReactionRemove", async (reaction, user) => {
         await member.roles.remove(roleId);
     } catch (err) {
         console.error(err);
+    }
+});
+
+//============================================================================================
+// Ticket System
+//============================================================================================
+
+const ticketMessages = {
+    "1537569311269593229": {
+        "✉️": "1537569586835366029",
+        "🔨": "1537569634138722385"
+    }
+}
+
+client.on("messageReactionAdd", async (reaction, user) => {
+    if (user.bot) return;
+
+    if (reaction.partial) await reaction.fetch();
+    if (reaction.message.partial) await reaction.message.fetch();
+
+    const guild = reaction.message.guild;
+    if (!guild) {
+        console.log("No guild detected");
+        return
+    }
+
+    const config = ticketMessages[reaction.message.id]
+    if (!config) return
+
+    const ticketCategory = config[reaction.emoji.name]
+    if (!ticketCategory) return
+
+    try {
+        const ticketChannel = await guild.channels.create({
+            name: user.globalName + "'s-ticket",
+            type: ChannelType.GuildText,
+            parent: ticketCategory,
+            permissionOverwrites : [
+                {
+                    id: guild.roles.everyone.id,
+                    deny: [PermissionFlagBits.ViewChannel]
+                },
+                {
+                    id: user.id,
+                    allow: [PermissionFlagBits.ViewChannel, PermissionFlagBits.SendMessages]
+                }
+            ]
+        })
+        await ticketChannel.send('<@'+user.id+">, Here's your ticket. Wait for Kraken or some other bozo to get to you")
+    } catch(err) {
+        console.log(err)
     }
 });
 
