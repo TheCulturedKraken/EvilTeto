@@ -70,6 +70,8 @@ const MeanThingsToSay = [
     "That opinion should've stayed in drafts",
 ]
 
+const { isPersonalityDisabled } = require('./personalityState')
+
 function isItBoss(id) {
     if (id === '485675003354808320') {
         return true
@@ -196,6 +198,9 @@ function shouldConfirm(chance, threshold) {
 }
 
 async function maybeConfirm(msg, action) {
+    if (isPersonalityDisabled(msg.guid.id)) {
+        return action();
+    }
     const interActionChance = rollChance(100);
     if (interActionChance > 89) {
         return msg.reply("Fuck off");
