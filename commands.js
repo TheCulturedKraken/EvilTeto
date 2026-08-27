@@ -80,6 +80,33 @@ function isItBoss(id) {
     }
 }
 
+function rollChance(max) {
+    return Math.floor(Math.random() * max) + 1;
+}
+
+function shouldConfirm(chance, threshold) {
+    return chance < threshold;
+}
+
+async function maybeConfirm(msg, action) {
+    if (isPersonalityDisabled(msg.guild.id)) {
+        return action();
+    }
+    const interActionChance = rollChance(100);
+    if (interActionChance > 89) {
+        return msg.reply("Fuck off");
+    }
+
+    if (shouldConfirm(interActionChance, 20)) {
+        const confirmed = await confirmAction(msg, true, null);
+
+        if (!confirmed) {
+            return msg.reply("Oh.. alright..")
+        }
+    }
+    return action();
+}
+
 async function confirmAction(msg, command, possibleText) {
     var text 
     if (command) {
@@ -187,33 +214,6 @@ function kickMember(msg) {
             msg.reply("I fucked up")
         }
     }
-}
-
-function rollChance(max) {
-    return Math.floor(Math.random() * max) + 1;
-}
-
-function shouldConfirm(chance, threshold) {
-    return chance < threshold;
-}
-
-async function maybeConfirm(msg, action) {
-    if (isPersonalityDisabled(msg.guid.id)) {
-        return action();
-    }
-    const interActionChance = rollChance(100);
-    if (interActionChance > 89) {
-        return msg.reply("Fuck off");
-    }
-
-    if (shouldConfirm(interActionChance, 20)) {
-        const confirmed = await confirmAction(msg, true, null);
-
-        if (!confirmed) {
-            return msg.reply("Oh.. alright..")
-        }
-    }
-    return action();
 }
 
 async function saySomethingMeanTargetted(msg) {
