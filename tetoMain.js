@@ -28,6 +28,7 @@ const token = process.env.TOKEN
 const Commands = require('./commands.js')
 const VoiceCommands = require('./voicecommands.js')
 const Hangman = require('./hangman.js');
+const { isPersonalityDisabled, setPersonalityDisabled } = require('./personalityState.js');
 
 //===========================================================================================
 // Casino Variables
@@ -66,7 +67,8 @@ const meanRoles = {
 
 client.on('messageCreate', msg => {
     try {
-    
+    if (isPersonalityDisabled(msg.guild.id)) return;
+
     var content = msg.content.toLowerCase();
     if (msg.mentions.has(client.user)) {
         if (content.includes("fuck you")) {
@@ -113,20 +115,34 @@ client.on('messageCreate', async msg => {
     //kick Command
     } else if (msg.content === 'yo Teto, nuke this chud') {
         try {await Commands.maybeConfirm(msg, () => Commands.kickMember(msg))} catch(err) {console.error(err); msg.reply("I fucked up")}
+    //Specific delete command
     } else if (msg.content === 'yo Teto, get rid of ts') {
         try {await Commands.maybeConfirm(msg, () => Commands.deleteSpecific(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
+    //pull specific user id
     } else if (msg.content === "yo Teto, whats this dicks ID") {
         try {await Commands.maybeConfirm(msg, () => Commands.getUserID(msg))} catch(err) {console.error(err); msg.reply("I fucked up")}
+    //Targetted insult command
     } else if (msg.content === 'yo Teto, fry this bitch') {
         try {await Commands.maybeConfirm(msg, () => Commands.saySomethingMeanTargetted(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
-    } else if (msg.content === 'yo Teto, break the bad news') {
-        try {msg.reply("Fuh no twin :broken_heart:")} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //28 day timeout command
     } else if (msg.content === 'yo Teto, kill them') {
         try {await Commands.maybeConfirm(msg, () => Commands.slaughter(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //Force leave server command
     } else if (msg.content == "yo Teto, they don't deserve you here, just leave em") {
         try {await Commands.maybeConfirm(msg, () => Commands.leaveServer(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //close ticket command
     } else if (msg.content === "yo Teto, close this ticket") {
-    try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    
+    //personality block toggles
+    } else if (msg.content === "yo Teto, cut the attitude") {
+        if (!(Commands.isItBoss)) return
+        setPersonalityDisabled(msg.guild.id, true);
+        msg.reply("You got it boss")
+    } else if (msg.content === "yo Teto, you can act up") {
+        if (!(Commands.isItBoss)) return
+        setPersonalityDisabled(msg.guild.id, false);
+        msg.reply("*Malicious laughter*")
     }
 })
 
@@ -328,6 +344,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
     if (!ticketCategory) return
 
     try {
+
         const ticketChannel = await guild.channels.create({
             name: user.globalName + "'s-ticket",
             type: ChannelType.GuildText,
@@ -343,10 +360,13 @@ client.on("messageReactionAdd", async (reaction, user) => {
                 }
             ]
         })
+
         await ticketChannel.send('<@'+user.id+">, Here's your ticket. Wait for Kraken or some other bozo to get to you")
+
     } catch(err) {
         console.log(err)
     }
 });
+
 
 client.login(token)
