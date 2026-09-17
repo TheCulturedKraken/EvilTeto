@@ -143,6 +143,12 @@ client.on('messageCreate', async msg => {
         if (!(Commands.isItBoss)) return
         setPersonalityDisabled(msg.guild.id, false);
         msg.reply("*Malicious laughter*")
+    } else if (msg.content === "yo Teto, how you feelin right now?") {
+        if isPersonalityDisabled(msg.guild.id) {
+            msg.reply("Got to control myself.. 🙄")
+        } else {
+            msg.reply("I'm completely free.")
+        }
     }
 })
 
@@ -255,17 +261,17 @@ client.on('messageCreate', async msg => {
 
 //Configured Messages
 const reactionRoles = {
-    "1534778101328904322": {
+    "1534778101328904322": { //Newsletter react roles
         "🎮": "1520165697374781591",
         "📺": "1525304843294478446",
         "📰": "1519512869853728998",
     },
 
-    "1534784330344304773": {
+    "1534784330344304773": { //Warhammer entry role
         "✅": "1534784621978321038"
     },
 
-    "1543089909609529426": {
+    "1543089909609529426": { //Warhammer faction roles
         "🐟": "1543094289129672806" ,
         "🦈": "1543094429227946074" ,
         "🪖": "1543094490959585342" ,
@@ -283,6 +289,10 @@ const reactionRoles = {
         "💀": "1543095235444351086" ,
         "👽": "1543095282009378826" ,
     },
+
+    "1550208562897223843": {
+        "✅": "1550208300958621906", //Looking for game role
+    }
 };
 
 //Add Role
