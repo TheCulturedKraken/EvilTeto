@@ -144,7 +144,7 @@ client.on('messageCreate', async msg => {
         setPersonalityDisabled(msg.guild.id, false);
         msg.reply("*Malicious laughter*")
     } else if (msg.content === "yo Teto, how you feelin right now?") {
-        if isPersonalityDisabled(msg.guild.id) {
+        if (isPersonalityDisabled(msg.guild.id)) {
             msg.reply("Got to control myself.. 🙄")
         } else {
             msg.reply("I'm completely free.")
