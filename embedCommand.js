@@ -37,11 +37,19 @@ async function createEmbed(msg) {
         await msg.reply("Took too long, forget it.")
         return;
     }
-    
+    const footer = await askAndCollect(msg, "What should the footer say?");
+    if (footer === null) {
+        await msg.reply("Took too long, forget it.");
+        return;
+    } else if (footer.toLowerCase().includes("no")) {
+        footer = "";
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(title)
         .setDescription(description)
-        .setColor(color);
+        .setColor(color)
+        .setFooter({ text: footer });
  
     await msg.channel.send({ embeds: [embed] });
 }
