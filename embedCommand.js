@@ -31,11 +31,17 @@ async function createEmbed(msg) {
         await msg.reply("Took too long, forget it.");
         return;
     }
- 
+
+    const color = await askAndCollect(msg, "What color should it be? (hexcode)");
+    if (color === null) {
+        await msg.reply("Took too long, forget it.")
+        return;
+    }
+    
     const embed = new EmbedBuilder()
         .setTitle(title)
         .setDescription(description)
-        .setColor(0x2b2d31);
+        .setColor(color);
  
     await msg.channel.send({ embeds: [embed] });
 }
