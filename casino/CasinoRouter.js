@@ -13,7 +13,7 @@ async function start(msg) {
     const balance = economyModule.getBalance(userId);
 
     const embed = new EmbedBuilder()
-        .setColor(C42121)
+        .setColor('C42121')
         .setTitle("🎰 Casino")
         .setDescription("Oh hell yeah! What you trying to play?")
         .addFields({ name: "Balance", value: `$${balance.toLocaleString()}`, inline: true })
