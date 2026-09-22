@@ -1,7 +1,3 @@
-const activeCasinoGames = require("./activeGames");
-const economyModule = require("./economy");
-const Blackjack = require("./blackjack");
-
 async function start(msg) {
     const userId = msg.author.id;
 
@@ -10,34 +6,67 @@ async function start(msg) {
     }
 
     const balance = economyModule.getBalance(userId);
-    await msg.reply(
-        "Oh hell yeah!\n\n" +
-        "What you trying to play?\n" +
-        "blackjack or cancel?"
+
+    const embed = new EmbedBuilder()
+        .setColor(0x2b2d31)
+        .setTitle("🎰 Casino")
+        .setDescription("Oh hell yeah! What you trying to play?")
+        .addFields({ name: "Balance", value: `$${balance.toLocaleString()}`, inline: true })
+        .setFooter({ text: "This menu expires in 15 seconds" });
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId("casino_blackjack")
+            .setLabel("Blackjack")
+            .setStyle(ButtonStyle.Success)
+            .setEmoji("🃏"),
+        new ButtonBuilder()
+            .setCustomId("casino_cancel")
+            .setLabel("Cancel")
+            .setStyle(ButtonStyle.Danger)
     );
 
+    const sentMsg = await msg.reply({ embeds: [embed], components: [row] });
+
     return new Promise((resolve) => {
-        const filter = (m) => m.author.id === userId;
-        const collector = msg.channel.createMessageCollector({ filter, time: 15000 });
+        const filter = (i) => i.user.id === userId;
+        const collector = sentMsg.createMessageComponentCollector({ filter, time: 15000 });
 
-        collector.on("collect", async (m) => {
-            const input = m.content.toLowerCase();
-
-            if (input.includes("cancel")) {
+        collector.on("collect", async (interaction) => {
+            if (interaction.customId === "casino_cancel") {
                 collector.stop("cancelled");
-                return m.reply("Aight bet, maybe next time.");
+
+                const cancelEmbed = EmbedBuilder.from(embed)
+                    .setDescription("Aight bet, maybe next time.")
+                    .setColor(0xed4245)
+                    .setFooter(null);
+
+                await interaction.update({ embeds: [cancelEmbed], components: [] });
+                return;
             }
 
-            if (input.includes("blackjack")) {
+            if (interaction.customId === "casino_blackjack") {
                 collector.stop("start");
-                msg.reply("Alright then! Let's hear the starting bet.")
-                return Blackjack.blackJack(msg);
-            }
 
-            return m.reply("Say 'blackjack' or 'cancel'");
+                const startEmbed = EmbedBuilder.from(embed)
+                    .setDescription("Alright then! Let's hear the starting bet.")
+                    .setColor(0x57f287)
+                    .setFooter(null);
+
+                await interaction.update({ embeds: [startEmbed], components: [] });
+                return Blackjack.blackJack(msg, interaction);
+            }
         });
 
-        collector.on("end", (_, reason) => {
+        collector.on("end", async (_, reason) => {
+            if (reason !== "start" && reason !== "cancelled") {
+                // timed out with no interaction
+                const timeoutEmbed = EmbedBuilder.from(embed)
+                    .setDescription("Menu timed out.")
+                    .setColor(0x99aab5)
+                    .setFooter(null);
+                await sentMsg.edit({ embeds: [timeoutEmbed], components: [] }).catch(() => {});
+            }
             if (reason !== "start") {
                 resolve();
             }
@@ -45,6 +74,4 @@ async function start(msg) {
     });
 }
 
-module.exports = {
-    start
-};
+module.exports = { start };
