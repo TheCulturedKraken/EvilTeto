@@ -28,6 +28,7 @@ const token = process.env.TOKEN
 const Commands = require('./commands.js')
 const VoiceCommands = require('./voicecommands.js')
 const Hangman = require('./hangman.js');
+const Embedcommand = require('./embedCommand.js')
 const { isPersonalityDisabled, setPersonalityDisabled } = require('./personalityState.js');
 
 //===========================================================================================
@@ -121,7 +122,8 @@ client.on('messageCreate', async msg => {
     //close ticket command
     } else if (msg.content === "yo Teto, close this ticket") {
         try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
-    
+    } else if (msg.content === "yo Teto, make an embed") {
+        try {await Commands.maybeConfirm(msg, () => Embedcommand.createEmbed(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     //personality block toggles
     } else if (msg.content === "yo Teto, cut the attitude") {
         if (!(Commands.isItBoss)) return
