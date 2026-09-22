@@ -54,6 +54,7 @@ const meanRoles = {
 
 client.on('messageCreate', msg => {
     try {
+    if (msg.author.bot) return;
     if (isPersonalityDisabled(msg.guild.id)) return;
 
     var content = msg.content.toLowerCase();
@@ -89,7 +90,7 @@ client.on('messageCreate', msg => {
 //============================================================================================
 client.on('messageCreate', async msg => {
     if (!msg.content.startsWith("yo Teto,")) { return }
-
+    if (msg.author.bot) return;
     // MemberCount command
     if (msg.content === 'yo Teto, how many bums I got in this server?') {
         try { await Commands.maybeConfirm(msg, () => Commands.memberCount(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
@@ -143,6 +144,7 @@ client.on('messageCreate', async msg => {
 // Voice Channel Commands
 //============================================================================================
 client.on('messageCreate', async msg => {
+    if (msg.author.bot) return;
     if (msg.content === "yo Teto, hop in here") {
         try {
             var channel = msg.member.voice.channel
@@ -189,6 +191,7 @@ client.on('messageCreate', async msg => {
 //============================================================================================
 
 client.on('messageCreate', async msg => {
+    if (msg.author.bot) return;
     if (!msg.content.startsWith("yo Teto,")) { return }
 
     if (msg.content === "yo Teto, let's play hangman") {
