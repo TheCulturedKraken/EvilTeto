@@ -293,7 +293,6 @@ async function closeTicket(msg) {
 }
 
 async function introduction(msg) {
-    if (!isItBoss(msg.author.id)) { return }
     Embedcommand.createSetEmbed(msg, "Everything about me!", 
         `
         ~~~~~~~~~~~~~~{Commands}~~~~~~~~~~~~~~
@@ -344,7 +343,7 @@ async function bossSetup(msg) {
     }
 
     if (success) {
-        msg.author.send("Made it all kinds of homey boss.");
+        msg.reply("Made it all kinds of homey boss.");
     }
 
 }
