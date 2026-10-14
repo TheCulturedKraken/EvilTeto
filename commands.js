@@ -70,7 +70,12 @@ const MeanThingsToSay = [
     "That opinion should've stayed in drafts",
 ]
 
+const { PermissionsBitField } = require('discord.js');
+
 const { isPersonalityDisabled } = require('./personalityState')
+const Embedcommand = require('./embedCommand.js')
+
+
 
 function isItBoss(id) {
     if (id === '485675003354808320') {
@@ -287,6 +292,63 @@ async function closeTicket(msg) {
     }
 }
 
+async function introduction(msg) {
+    if (!isItBoss(msg.author.id)) { return }
+    Embedcommand.createSetEmbed(msg, "Everything about me!", 
+        `
+        ~~~~~~~~~~~~~~{Commands}~~~~~~~~~~~~~~
+
+        **Public use**
+
+        > yo Teto, fry this bitch - I insult whoever you reply this too
+        > yo Teto, hop in here - I join the vc
+        > yo Teto, get out bro - I leave the vc
+        > yo Teto, sing for me - I sing a random song
+        > yo Teto, let's play hangman - I start a game of Hangman
+        > yo Teto, let's go gambling! - We go to my casino! As of now it's only blackjack though.
+
+        ~~~~~~~~~~~~~~{Me Being Mean}~~~~~~~~~~~~~~
+
+        Whenever you send a message I have a chance to say something mean to you!
+        Depending on which role you have it changes the percentage.
+
+        @Teto Hate -> 5%
+        @Super Teto Hate -> 10%
+        @Ultra Teto Hate -> 40%
+        @Pure Teto Spite-> 90%
+        `
+        , "C42121", "Created by Boss")
+}
+
+async function bossSetup(msg) {
+    if (!isItBoss(msg.author.id)) { return }
+
+    const tiers = ['Teto Hate', 'Super Teto Hate', 'Ultra Teto Hate', 'Pure Teto Spite'];
+    var success = true
+
+    for (const tier of tiers) {
+        const role = msg.guild.roles.cache.find(r => r.name === tier);
+        if (!role) {
+            try {
+                await msg.guild.roles.create({
+                    name: tier,
+                    color: 'RED',
+                    reason: 'Needed for Teto bot functionality',
+                });
+                msg.author.send(`Created role: ${tier}`);
+            } catch (err) {
+                success = false
+                msg.author.send(`Failed to create role ${tier}: ${err.message}`);
+            }
+        }
+    }
+
+    if (success) {
+        msg.author.send("Made it all kinds of homey boss.");
+    }
+
+}
+
 module.exports = {
     isItBoss,
     memberCount,
@@ -302,4 +364,6 @@ module.exports = {
     slaughter,
     leaveServer,
     closeTicket,
+    introduction,
+    bossSetup
 }
