@@ -122,8 +122,16 @@ client.on('messageCreate', async msg => {
     //close ticket command
     } else if (msg.content === "yo Teto, close this ticket") {
         try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //make embed command
     } else if (msg.content === "yo Teto, make an embed") {
         try {await Commands.maybeConfirm(msg, () => Embedcommand.createEmbed(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //teto Introduction command
+    } else if (msg.content === "yo Teto, tell me about yourself") {
+        try {await Commands.maybeConfirm(msg, () => Commands.introduction(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //Teto setup command
+    } else if (msg.content === "yo Teto, get comfortable") {
+        try {await Commands.maybeConfirm(msg, () => Commands.bossSetup(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    
     //personality block toggles
     } else if (msg.content === "yo Teto, cut the attitude") {
         if (!(Commands.isItBoss)) return
