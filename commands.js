@@ -331,7 +331,7 @@ async function bossSetup(msg) {
             try {
                 await msg.guild.roles.create({
                     name: tier,
-                    color: 'RED',
+                    color: 'C42121',
                     reason: 'Needed for Teto bot functionality',
                 });
                 msg.author.send(`Created role: ${tier}`);
