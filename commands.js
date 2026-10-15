@@ -295,7 +295,7 @@ async function closeTicket(msg) {
 async function introduction(msg) {
     Embedcommand.createSetEmbed(msg, "Everything about me!", 
         `
-        ~~~~~~~~~~~~~~{Commands}~~~~~~~~~~~~~~
+        --------------{Commands}--------------
 
         **Public use**
 
@@ -306,7 +306,7 @@ async function introduction(msg) {
         > yo Teto, let's play hangman - I start a game of Hangman
         > yo Teto, let's go gambling! - We go to my casino! As of now it's only blackjack though.
 
-        ~~~~~~~~~~~~~~{Me Being Mean}~~~~~~~~~~~~~~
+        --------------{Me Being Mean}--------------
 
         Whenever you send a message I have a chance to say something mean to you!
         Depending on which role you have it changes the percentage.
