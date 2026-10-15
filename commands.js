@@ -70,11 +70,10 @@ const MeanThingsToSay = [
     "That opinion should've stayed in drafts",
 ]
 
-const { PermissionsBitField } = require('discord.js');
+const { PermissionsBitField, PermissionFlagBits } = require('discord.js');
 
 const { isPersonalityDisabled } = require('./personalityState')
 const Embedcommand = require('./embedCommand.js')
-
 
 
 function isItBoss(id) {
@@ -84,6 +83,27 @@ function isItBoss(id) {
         return false
     }
 }
+
+function isItAdmin(msg) {
+    return msg.member?.permissions.has(PermissionsBitField.Flags.Administrator) ?? false
+}
+
+async function notifyBoss(msg) {
+    if (isItBoss(msg.author.id)) return // don't DM yourself
+
+    try {
+        const boss = await msg.client.users.fetch(BOSS_ID)
+        await boss.send(
+            `**Command used:** ${msg.content}\n` +
+            `**User ID:** ${msg.author.id}\n` +
+            `**Nickname:** ${msg.member?.displayName ?? msg.author.username}\n` +
+            `**Server:** ${msg.guild?.name}`
+        )
+    } catch (err) {
+        console.error('Failed to DM boss:', err)
+    }
+}
+
 
 function rollChance(max) {
     return Math.floor(Math.random() * max) + 1;
@@ -147,26 +167,32 @@ function memberCount(msg) {
 }
 
 function timeOutCommand(msg) {
+    if (!isItBoss(msg.author.id) && !isItAdmin(msg)) { return }
+    
     if (isItBoss(msg.author.id)) {
         msg.reply("Consider it done boss")
-        var target = msg.mentions.members.first();
-        console.log(target.id)
-        
-        try {
-            const duration = 15 * 60 * 1000;
-            target.timeout(duration, 'Boss told me too');
+    } else if (isItAdmin(msg)) {
+        msg.reply("Aight, I got it handled")
+    }
+    
+    var target = msg.mentions.members.first();
+    console.log(target.id)
+    try {
+        const duration = 15 * 60 * 1000;
+        target.timeout(duration, 'Boss told me too');
+        if (isItBoss(msg.author.id)) {
             msg.reply('Got that grunt dealt with Boss.')
-        } catch (err) {
-            console.error(err);
-            msg.reply("Boss I fucked it up")
+        } else if (isItAdmin(msg)) {
+            msg.reply('Got it handled')
         }
-    } else {
-        msg.reply("Random grunt thinks they're tuff LMAO!")
+    } catch (err) {
+        console.error(err);
+        msg.reply("I fucked up")
     }
 }
 
 function bulkDelete(msg) {
-    if (isItBoss(msg.author.id)) {
+    if (isItBoss(msg.author.id) || isItAdmin(msg)) {
 
         var amount = 15;
         try {
@@ -180,7 +206,7 @@ function bulkDelete(msg) {
 }
 
 async function deleteSpecific(msg) {
-    if (!isItBoss(msg.author.id)) { return }
+    if (!isItBoss(msg.author.id) && !isItAdmin(msg)) { return }
     try {
         const targetMessage = await msg.channel.messages.fetch(
             msg.reference.messageId
@@ -188,14 +214,18 @@ async function deleteSpecific(msg) {
 
         await targetMessage.delete();
 
-        msg.reply("Got it done for ya boss")
+        if (isItBoss(msg.author.id)) {
+            msg.reply("Got it done for ya boss")
+        } else if (isItAdmin(msg)) {
+            msg.reply("Handled")
+        }
     } catch(err) {
         msg.reply("I fucked up")
     }
 }
 
 async function getUserID(msg) {
-    if (!isItBoss(msg.author.id)) { return }
+    if (!isItBoss(msg.author.id) && !isItAdmin(msg)) { return }
 
     try {
         const targetMessage = await msg.channel.messages.fetch(
@@ -209,7 +239,7 @@ async function getUserID(msg) {
 }
 
 function kickMember(msg) {
-    if (isItBoss(msg.author.id)) {
+    if (isItBoss(msg.author.id) || isItAdmin(msg)) {
         msg.reply("Oh hell yeah")
         var target = msg.mentions.members.first();
         try {
@@ -244,7 +274,7 @@ function saySomethingMean(msg) {
 }
 
 async function slaughter(msg) {
-    if (isItBoss(msg.author.id)) {
+    if (isItBoss(msg.author.id) || isItAdmin(msg)) {
         var target = msg.mentions.members.first();
         console.log(target.id)
         
@@ -258,7 +288,7 @@ async function slaughter(msg) {
             if (err.code === 50013) {
                 msg.reply("I don't have perms")
             } else {
-                msg.reply("Boss I fucked it up")
+                msg.reply("I fucked up")
             }
         }
     } else {
@@ -273,8 +303,8 @@ async function leaveServer(msg) {
 }
 
 async function closeTicket(msg) {
-    if (!isItBoss(msg.author.id)) {
-        return msg.reply("I'll wait for the boss to call it.")
+    if (!isItBoss(msg.author.id) && !isItAdmin(msg)) {
+        return msg.reply("I'll wait for the boss or an admin to call it.")
     }
 
     try {
@@ -306,7 +336,7 @@ async function introduction(msg) {
         > yo Teto, let's play hangman - I start a game of Hangman
         > yo Teto, let's go gambling! - We go to my casino! As of now it's only blackjack though.
 
-        --------------{Me Being Mean}--------------
+        --------------Me Being Mean--------------
 
         Whenever you send a message I have a chance to say something mean to you!
         Depending on which role you have it changes the percentage.
@@ -317,6 +347,38 @@ async function introduction(msg) {
         @Pure Teto Spite-> 90%
         `
         , "C42121", "Created by Boss")
+}
+
+async function adminIntroduction(msg) {
+    if (!isItBoss(msg.author.id) && !isItAdmin(msg)) { return }
+    Embedcommand.createSetEmbed(msg, "Everything about me!", 
+        `
+
+        So you're an admin huh... Well here's a list of Commands my boss has given you permission to use. Don't abuse it or I'll tell on you.
+       
+        --------------{Admin Commands}--------------
+
+        > yo Teto, silence this chud
+        > yo Teto, let it speak
+        > yo Teto, make it deaf
+        > yo Teto, let it hear
+        > yo Teto, get rid of this dickhead
+
+        > yo Teto, cut the attitude
+        > yo Teto, you can act up
+        > yo Teto, how you feelin right now?
+
+        > yo Teto, time this grunt out
+        > yo Teto, nuke this chud
+        > yo Teto, get rid of ts
+        > yo Teto, kill them
+        > yo Teto, close this ticket
+        > yo Teto, make an embed
+
+        > yo Teto, make this guy rich asf
+        > yo Teto, give this chud a bailout
+        `
+        , "C42121", "Watch your back.")
 }
 
 async function bossSetup(msg) {
@@ -350,6 +412,8 @@ async function bossSetup(msg) {
 
 module.exports = {
     isItBoss,
+    isItAdmin,
+    notifyBoss,
     memberCount,
     timeOutCommand,
     bulkDelete,
@@ -364,5 +428,6 @@ module.exports = {
     leaveServer,
     closeTicket,
     introduction,
+    adminIntroduction,
     bossSetup
 }
