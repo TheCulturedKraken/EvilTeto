@@ -126,7 +126,7 @@ client.on('messageCreate', async msg => {
     } else if (msg.content === "yo Teto, make an embed") {
         try {await Commands.maybeConfirm(msg, () => Embedcommand.createEmbed(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     //teto Introduction command
-    } else if (msg.content === "yo Teto, tell me about yourself") {
+    } else if (msg.content === "yo Teto, introduce yourself") {
         try {await Commands.maybeConfirm(msg, () => Embedcommand.introduction(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     //Teto setup command
     } else if (msg.content === "yo Teto, get comfortable") {
