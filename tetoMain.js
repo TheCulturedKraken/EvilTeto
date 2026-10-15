@@ -87,6 +87,36 @@ client.on('messageCreate', msg => {
 })
 
 //============================================================================================
+// Gatekept Command Logging
+//============================================================================================
+const gatekeptCommands = [
+    "yo Teto, time this grunt out",
+    "yo Teto, nuke this chud",
+    "yo Teto, get rid of ts",
+    "yo Teto, kill them",
+    "yo Teto, close this ticket",
+    "yo Teto, make an embed",
+    "yo Teto, whats this dicks ID",
+    "yo Teto, clear some of this shit out",
+    "yo Teto, silence this chud",
+    "yo Teto, let it speak",
+    "yo Teto, make it deaf",
+    "yo Teto, let it hear",
+    "yo Teto, get rid of this dickhead",
+    "yo Teto, cut the attitude",
+    "yo Teto, you can act up",
+    "yo Teto, make this guy rich asf",
+    "yo Teto, give this chud a bailout",
+]
+
+client.on('messageCreate', async msg => {
+    if (msg.author.bot) return;
+    if (!gatekeptCommands.includes(msg.content)) return;
+    if (!Commands.isItAdmin(msg)) return;
+    await Commands.notifyBoss(msg)
+})
+
+//============================================================================================
 // Text Channel Commands
 //============================================================================================
 client.on('messageCreate', async msg => {
@@ -131,14 +161,17 @@ client.on('messageCreate', async msg => {
     //Teto setup command
     } else if (msg.content === "yo Teto, get comfortable") {
         try {await Commands.maybeConfirm(msg, () => Commands.bossSetup(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //Admin introduction command
+    } else if (msg.content === "yo Teto, I'm an admin, tell me what you do") {
+        try {await Commands.maybeConfirm(msg, () => Commands.adminIntroduction(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     
-    //personality block toggles
+        //personality block toggles
     } else if (msg.content === "yo Teto, cut the attitude") {
-        if (!(Commands.isItBoss)) return
+        if (!(Commands.isItBoss(msg.author.id)) && !(Commands.isItAdmin(msg))) return
         setPersonalityDisabled(msg.guild.id, true);
         msg.reply("You got it boss")
     } else if (msg.content === "yo Teto, you can act up") {
-        if (!(Commands.isItBoss)) return
+        if (!(Commands.isItBoss(msg.author.id)) && !(Commands.isItAdmin(msg))) return
         setPersonalityDisabled(msg.guild.id, false);
         msg.reply("*Malicious laughter*")
     } else if (msg.content === "yo Teto, how you feelin right now?") {
@@ -229,7 +262,7 @@ client.on('messageCreate', async msg => {
             msg.reply("I fucked up")
         }
     } else if (msg.content === "yo Teto, give this chud a bailout") {
-        if (Commands.isItBoss(msg.author.id)) {
+        if (Commands.isItBoss(msg.author.id) || Commands.isItAdmin(msg)) {
             try {
                 const targetMessage = await msg.channel.messages.fetch(msg.reference.messageId)
                 economyModule.addMoney(targetMessage.author.id, 100)
@@ -241,7 +274,7 @@ client.on('messageCreate', async msg => {
             }
         }
     } else if (msg.content === "yo Teto, make this guy rich asf") {
-        if (Commands.isItBoss(msg.author.id)) {
+        if (Commands.isItBoss(msg.author.id) || Commands.isItAdmin(msg)) {
             try {
                 const targetMessage = await msg.channel.messages.fetch(msg.reference.messageId)
                 economyModule.addMoney(targetMessage.author.id, 5000)
