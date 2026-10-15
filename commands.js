@@ -75,6 +75,7 @@ const { PermissionsBitField, PermissionFlagBits } = require('discord.js');
 const { isPersonalityDisabled } = require('./personalityState')
 const Embedcommand = require('./embedCommand.js')
 
+const BOSS_ID = '485675003354808320'
 
 function isItBoss(id) {
     if (id === '485675003354808320') {
