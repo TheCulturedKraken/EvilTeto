@@ -337,6 +337,9 @@ async function introduction(msg) {
         > yo Teto, let's play hangman - I start a game of Hangman
         > yo Teto, let's go gambling! - We go to my casino! As of now it's only blackjack though.
 
+        if you're an admin try the command
+        > yo Teto, I'm an admin, tell me what you do
+        
         --------------Me Being Mean--------------
 
         Whenever you send a message I have a chance to say something mean to you!
@@ -352,32 +355,31 @@ async function introduction(msg) {
 
 async function adminIntroduction(msg) {
     if (!isItBoss(msg.author.id) && !isItAdmin(msg)) { return }
-    Embedcommand.createSetEmbed(msg, "Everything about me!", 
+    Embedcommand.createSetEmbed(msg, "Admin Introduction", 
         `
-
         So you're an admin huh... Well here's a list of Commands my boss has given you permission to use. Don't abuse it or I'll tell on you.
        
         --------------{Admin Commands}--------------
 
-        > yo Teto, silence this chud
-        > yo Teto, let it speak
-        > yo Teto, make it deaf
-        > yo Teto, let it hear
-        > yo Teto, get rid of this dickhead
+        > yo Teto, silence this chud (server mutes)
+        > yo Teto, let it speak (un-server mutes)
+        > yo Teto, make it deaf (server deafens)
+        > yo Teto, let it hear (un-server deafens)
+        > yo Teto, get rid of this dickhead (disconnects)
 
-        > yo Teto, cut the attitude
-        > yo Teto, you can act up
-        > yo Teto, how you feelin right now?
+        > yo Teto, cut the attitude (disables personality)
+        > yo Teto, you can act up (enables personality)
+        > yo Teto, how you feelin right now? (displays if personality is enabled or disabled)
 
-        > yo Teto, time this grunt out
-        > yo Teto, nuke this chud
-        > yo Teto, get rid of ts
-        > yo Teto, kill them
-        > yo Teto, close this ticket
-        > yo Teto, make an embed
-
-        > yo Teto, make this guy rich asf
-        > yo Teto, give this chud a bailout
+        > yo Teto, time this grunt out (15 minute timeout)
+        > yo Teto, nuke this chud (kicks user)
+        > yo Teto, get rid of ts (deletes specific message)
+        > yo Teto, clear some of this shit out (bulk deletes 15 messages)
+        > yo Teto, kill them (28 day timeout)
+        > yo Teto, close this ticket (closes ticket)
+        > yo Teto, make an embed (creates embed)
+        > yo Teto, make this guy rich asf (gives user 5000 casino chips)
+        > yo Teto, give this chud a bailout (gives user 100 chips)
         `
         , "C42121", "Watch your back.")
 }
