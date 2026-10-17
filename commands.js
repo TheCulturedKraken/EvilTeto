@@ -358,6 +358,7 @@ const MeanThingsToSay = [
 ];
 
 
+
 const { PermissionsBitField, PermissionFlagBits } = require('discord.js');
 
 const { isPersonalityDisabled } = require('./personalityState')
@@ -466,7 +467,7 @@ function timeOutCommand(msg) {
     
     var target = msg.mentions.members.first();
 
-        if (isitBoss(target.id)) {
+        if (isItBoss(target.id)) {
             msg.reply("Yeah bro you really thought :joy::v:")
             return
         }
@@ -538,7 +539,7 @@ function kickMember(msg) {
         msg.reply("Oh hell yeah")
         var target = msg.mentions.members.first();
 
-        if (isitBoss(target.id)) {
+        if (isItBoss(target.id)) {
             msg.reply("Yeah bro you really thought :joy::v:")
             return
         }
@@ -579,7 +580,7 @@ async function slaughter(msg) {
         var target = msg.mentions.members.first();
         console.log(target.id)
         
-        if (isitBoss(target.id)) {
+        if (isItBoss(target.id)) {
             msg.reply("I don't think so :joy::v:")
             return
         }
