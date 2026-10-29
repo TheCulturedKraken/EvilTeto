@@ -59,6 +59,7 @@ const meanRoles = {
 client.on('messageCreate', msg => {
     try {
     if (msg.author.bot) return;
+    if (!msg.guild) return;
     if (isPersonalityDisabled(msg.guild.id)) return;
 
     var content = msg.content.toLowerCase();
