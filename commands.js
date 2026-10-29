@@ -468,7 +468,7 @@ function timeOutCommand(msg) {
     var target = msg.mentions.members.first();
 
         if (isItBoss(target.id)) {
-            msg.reply("Yeah bro you really thought :joy::v:")
+            msg.reply("Yeah nice try chud :joy::v:")
             return
         }
 
@@ -720,6 +720,59 @@ async function bossSetup(msg) {
 
 }
 
+const LEAVE_PATTERN = /^yo teto,?\s+leave server off of id\s+\[(\d{17,20})\]\s*$/i;
+
+
+async function leaveTargetServerID(msg, serverID, client) {
+    if (!isItBoss(msg.author.id)) { return }
+    if (msg.guild) {
+        return msg.reply("This command can only be used in DMs.");
+    }
+
+    const match = msg.content.trim().match(LEAVE_PATTERN);
+    if (!match) {
+        return msg.reply("Say it like: `yo Teto, leave server off of id [server id]`");
+    }
+    const serverID = match[1];
+
+    const guild = client.guilds.cache.get(serverID);
+    if (!guild) {
+        return msg.reply("I am not in a server with that ID.");
+    }
+    
+    const name = guild.name;
+    const owner = await guild.fetchOwner().catch(() => null) ;
+    const memberCount = guild.memberCount;
+
+    await msg.reply(`Leaving server: ${name}\nOwner: ${owner?.user.tag || "Unknown"}\nMember Count: ${memberCount}\nDo you confirm?`);
+
+    let reply;
+    try {
+        const collected = await msg.channel.awaitMessages({
+            filter: response => response.author.id === msg.author.id && ['yes', 'y', 'no', 'n'].includes(response.content.toLowerCase()),
+            max: 1,
+            time: 30000,
+            errors: ['time']
+        });
+        reply = collected.first().content.toLowerCase();
+    } catch (err) {
+        console.error(err);
+        return msg.reply("I fucked up");
+    }
+
+    if (reply === 'no' || reply === 'n') {
+        return msg.reply("Action cancelled.");
+    }
+
+    try {
+        await guild.leave();
+        msg.reply(`Left the server with ID: ${serverID}`);
+    } catch (err) {
+        console.error(err);
+        msg.reply("I fucked up");
+    }
+}
+
 module.exports = {
     isItBoss,
     isItAdmin,
@@ -739,5 +792,7 @@ module.exports = {
     closeTicket,
     introduction,
     adminIntroduction,
-    bossSetup
+    bossSetup,
+    leaveTargetServerID,
+    LEAVE_PATTERN,
 }
