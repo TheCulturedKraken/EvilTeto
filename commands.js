@@ -723,7 +723,7 @@ async function bossSetup(msg) {
 const LEAVE_PATTERN = /^yo teto,?\s+leave server off of id\s+\[(\d{17,20})\]\s*$/i;
 
 
-async function leaveTargetServerID(msg, serverID, client) {
+async function leaveTargetServerID(msg, client) {
     if (!isItBoss(msg.author.id)) { return }
     if (msg.guild) {
         return msg.reply("This command can only be used in DMs.");
