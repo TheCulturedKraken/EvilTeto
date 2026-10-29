@@ -149,6 +149,9 @@ client.on('messageCreate', async msg => {
     //Force leave server command
     } else if (msg.content == "yo Teto, they don't deserve you here, just leave em") {
         try {await Commands.maybeConfirm(msg, () => Commands.leaveServer(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+    //Leave server off of ID alone
+    } else if (Commands.LEAVE_PATTERN.test(msg.content.trim())) {
+        try { await Commands.leaveTargetServerID(msg, client) } catch(err) { console.error(err); msg.reply("I fucked up") }
     //close ticket command
     } else if (msg.content === "yo Teto, close this ticket") {
         try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
@@ -162,7 +165,7 @@ client.on('messageCreate', async msg => {
     } else if (msg.content === "yo Teto, get comfortable") {
         try {await Commands.maybeConfirm(msg, () => Commands.bossSetup(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     //Admin introduction command
-    } else if (msg.content === "yo Teto, I'm an admin, tell me what you do") {
+    } else if (msg.content === "yo Teto, I'm an admin, tell me what you can do") {
         try {await Commands.maybeConfirm(msg, () => Commands.adminIntroduction(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
     
         //personality block toggles
