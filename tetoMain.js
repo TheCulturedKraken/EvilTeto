@@ -9,6 +9,9 @@ const client = new Discord.Client({ intents : [
     Discord.GatewayIntentBits.Guilds,
     Discord.GatewayIntentBits.GuildMessages,
     Discord.GatewayIntentBits.MessageContent,
+    Discord.GatewayIntentBits.DirectMessages,
+    Discord.GatewayIntentBits.GuildPresences,
+    Discord.GatewayIntentBits.GuildBans,
     Discord.GatewayIntentBits.GuildModeration,
     Discord.GatewayIntentBits.GuildVoiceStates,
     Discord.GatewayIntentBits.GuildMessageReactions,
@@ -149,7 +152,7 @@ client.on('messageCreate', async msg => {
     //Force leave server command
     } else if (msg.content == "yo Teto, they don't deserve you here, just leave em") {
         try {await Commands.maybeConfirm(msg, () => Commands.leaveServer(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
-    //Leave server off of ID alone
+    //leave server by ID command
     } else if (Commands.LEAVE_PATTERN.test(msg.content.trim())) {
         try { await Commands.leaveTargetServerID(msg, client) } catch(err) { console.error(err); msg.reply("I fucked up") }
     //close ticket command
@@ -407,7 +410,6 @@ client.on("messageReactionAdd", async (reaction, user) => {
 
     const ticketCategory = config[reaction.emoji.name]
     if (!ticketCategory) return
-
     try {
 
         const ticketChannel = await guild.channels.create({
@@ -425,9 +427,8 @@ client.on("messageReactionAdd", async (reaction, user) => {
                 }
             ]
         })
-
+        
         await ticketChannel.send('<@'+user.id+">, Here's your ticket. Wait for Kraken or some other bozo to get to you")
-
     } catch(err) {
         console.log(err)
     }
