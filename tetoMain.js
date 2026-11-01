@@ -156,6 +156,9 @@ client.on('messageCreate', async msg => {
     //leave server by ID command
     } else if (Commands.LEAVE_PATTERN.test(msg.content.trim())) {
         try { await Commands.leaveTargetServerID(msg, client) } catch(err) { console.error(err); msg.reply("I fucked up") }
+    //List all servers (DMs, boss only)
+    } else if (msg.content === "yo Teto, where all you at?") {
+        try { await Commands.listServers(msg, client) } catch(err) { console.error(err); msg.reply("I fucked up") }
     //close ticket command
     } else if (msg.content === "yo Teto, close this ticket") {
         try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
@@ -411,6 +414,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
 
     const ticketCategory = config[reaction.emoji.name]
     if (!ticketCategory) return
+
     try {
 
         const ticketChannel = await guild.channels.create({
@@ -428,8 +432,9 @@ client.on("messageReactionAdd", async (reaction, user) => {
                 }
             ]
         })
-        
+
         await ticketChannel.send('<@'+user.id+">, Here's your ticket. Wait for Kraken or some other bozo to get to you")
+
     } catch(err) {
         console.log(err)
     }
