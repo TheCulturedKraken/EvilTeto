@@ -773,6 +773,33 @@ async function leaveTargetServerID(msg, client) {
     }
 }
 
+async function listServers(msg, client) {
+    if (!isItBoss(msg.author.id)) { return }
+    if (msg.guild) {
+        return msg.reply("This command can only be used in DMs.");
+    }
+
+    const guilds = [...client.guilds.cache.values()]
+        .sort((a, b) => b.memberCount - a.memberCount);
+
+    if (guilds.length === 0) {
+        return msg.reply("I'm not in any servers.");
+    }
+
+    const lines = guilds.map(g => `**${g.name}**\nID: \`${g.id}\` | Members: ${g.memberCount}`);
+
+    // Discord caps messages at 2000 characters, so send in chunks
+    let chunk = `I'm in **${guilds.length}** servers:\n\n`;
+    for (const line of lines) {
+        if (chunk.length + line.length + 2 > 1900) {
+            await msg.channel.send(chunk);
+            chunk = '';
+        }
+        chunk += line + '\n\n';
+    }
+    if (chunk.trim()) await msg.channel.send(chunk);
+}
+
 module.exports = {
     isItBoss,
     isItAdmin,
@@ -795,4 +822,5 @@ module.exports = {
     bossSetup,
     leaveTargetServerID,
     LEAVE_PATTERN,
+    listServers,
 }
