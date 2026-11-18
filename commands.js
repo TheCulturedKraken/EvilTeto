@@ -395,8 +395,6 @@ async function notifyBossOfAdminUse(msg) {
 }
 
 async function notifyBossOfError(msg, error) {
-    if (isItBoss(msg.author.id)) return // don't DM yourself
-
     try {
         const boss = await msg.client.users.fetch(BOSS_ID)
         await boss.send(
