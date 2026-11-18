@@ -117,7 +117,7 @@ client.on('messageCreate', async msg => {
     if (msg.author.bot) return;
     if (!gatekeptCommands.includes(msg.content)) return;
     if (!Commands.isItAdmin(msg)) return;
-    await Commands.notifyBoss(msg)
+    await Commands.notifyBossOfAdminUse(msg)
 })
 
 //============================================================================================
@@ -128,53 +128,53 @@ client.on('messageCreate', async msg => {
     if (msg.author.bot) return;
     // MemberCount command
     if (msg.content === 'yo Teto, how many bums I got in this server?') {
-        try { await Commands.maybeConfirm(msg, () => Commands.memberCount(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
+        try { await Commands.maybeConfirm(msg, () => Commands.memberCount(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up"); }
     // Timeout Command
     } else if (msg.content === "yo Teto, time this grunt out") { 
-        try { await Commands.maybeConfirm(msg,() => Commands.timeOutCommand(msg))} catch(err) {console.error(err); msg.reply("I fucked up")}
+        try { await Commands.maybeConfirm(msg,() => Commands.timeOutCommand(msg))} catch(err) {console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     //delete message Command
     } else if (msg.content === "yo Teto, clear some of this shit out") {
-        try {await Commands.maybeConfirm(msg, () => Commands.bulkDelete(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.bulkDelete(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //kick Command
     } else if (msg.content === 'yo Teto, nuke this chud') {
-        try {await Commands.maybeConfirm(msg, () => Commands.kickMember(msg))} catch(err) {console.error(err); msg.reply("I fucked up")}
+        try {await Commands.maybeConfirm(msg, () => Commands.kickMember(msg))} catch(err) {console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     //Specific delete command
     } else if (msg.content === 'yo Teto, get rid of ts') {
-        try {await Commands.maybeConfirm(msg, () => Commands.deleteSpecific(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
+        try {await Commands.maybeConfirm(msg, () => Commands.deleteSpecific(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     //pull specific user id
     } else if (msg.content === "yo Teto, whats this dicks ID") {
-        try {await Commands.maybeConfirm(msg, () => Commands.getUserID(msg))} catch(err) {console.error(err); msg.reply("I fucked up")}
+        try {await Commands.maybeConfirm(msg, () => Commands.getUserID(msg))} catch(err) {console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     //Targetted insult command
     } else if (msg.content === 'yo Teto, fry this bitch') {
-        try {await Commands.maybeConfirm(msg, () => Commands.saySomethingMeanTargetted(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.saySomethingMeanTargetted(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //28 day timeout command
     } else if (msg.content === 'yo Teto, kill them') {
-        try {await Commands.maybeConfirm(msg, () => Commands.slaughter(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.slaughter(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //Force leave server command
     } else if (msg.content == "yo Teto, they don't deserve you here, just leave em") {
-        try {await Commands.maybeConfirm(msg, () => Commands.leaveServer(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.leaveServer(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //leave server by ID command
     } else if (Commands.LEAVE_PATTERN.test(msg.content.trim())) {
-        try { await Commands.leaveTargetServerID(msg, client) } catch(err) { console.error(err); msg.reply("I fucked up") }
+        try { await Commands.leaveTargetServerID(msg, client) } catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //List all servers (DMs, boss only)
     } else if (msg.content === "yo Teto, where all you at?") {
-        try { await Commands.listServers(msg, client) } catch(err) { console.error(err); msg.reply("I fucked up") }
+        try { await Commands.listServers(msg, client) } catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //close ticket command
     } else if (msg.content === "yo Teto, close this ticket") {
-        try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //make embed command
     } else if (msg.content === "yo Teto, make an embed") {
-        try {await Commands.maybeConfirm(msg, () => Embedcommand.createEmbed(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Embedcommand.createEmbed(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //teto Introduction command
     } else if (msg.content === "yo Teto, introduce yourself") {
-        try {await Commands.maybeConfirm(msg, () => Commands.introduction(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.introduction(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //Teto setup command
     } else if (msg.content === "yo Teto, get comfortable") {
-        try {await Commands.maybeConfirm(msg, () => Commands.bossSetup(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => Commands.bossSetup(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     //Admin introduction command
     } else if (msg.content === "yo Teto, I'm an admin, tell me what you can do") {
-        try {await Commands.maybeConfirm(msg, () => Commands.adminIntroduction(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
-    
+        try {await Commands.maybeConfirm(msg, () => Commands.adminIntroduction(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
+
         //personality block toggles
     } else if (msg.content === "yo Teto, cut the attitude") {
         if (!(Commands.isItBoss(msg.author.id)) && !(Commands.isItAdmin(msg))) return
@@ -213,6 +213,7 @@ client.on('messageCreate', async msg => {
                 msg.reply("Dick you ain't even in a channel")
             }
         } catch (err) {
+            await Commands.notifyBossOfError(msg, err);
             msg.reply("I fucked up")
         }
     } else if (msg.content === 'yo Teto, get out bro') {
@@ -225,17 +226,17 @@ client.on('messageCreate', async msg => {
             msg.reply("You tripping?")
         }
     } else if (msg.content === "yo Teto, sing for me") {
-        try{VoiceCommands.playSong(msg)} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try{VoiceCommands.playSong(msg)} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     } else if (msg.content === "yo Teto, silence this chud") {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.muteMember(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
+        try {await Commands.maybeConfirm(msg, () => VoiceCommands.muteMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     } else if (msg.content === "yo Teto, let it speak") {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.unMuteMember(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
+        try {await Commands.maybeConfirm(msg, () => VoiceCommands.unMuteMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     } else if (msg.content === 'yo Teto, make it deaf') {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.deafenMember(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
+        try {await Commands.maybeConfirm(msg, () => VoiceCommands.deafenMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     } else if (msg.content === "yo Teto, let it hear") {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.unDeafenMember(msg))} catch(err) { console.error(err); msg.reply("I fucked up")}
+        try {await Commands.maybeConfirm(msg, () => VoiceCommands.unDeafenMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
     } else if (msg.content === 'yo Teto, get rid of this dickhead') {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.disconnectMember(msg))} catch(err) { console.error(err); msg.reply("I fucked up") }
+        try {await Commands.maybeConfirm(msg, () => VoiceCommands.disconnectMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
     }
 })
 
@@ -260,7 +261,7 @@ client.on('messageCreate', async msg => {
             await Hangman.hangMan(msg)
 
         } catch(err) { 
-            console.error(err); msg.reply("I fucked up")
+            console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")
         }
 
         Busy.set(msg.guild.id, false);
@@ -268,8 +269,7 @@ client.on('messageCreate', async msg => {
         try {
             await Casino.start(msg)
         } catch(err) {
-            console.error(err)
-            msg.reply("I fucked up")
+            console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")
         }
     } else if (msg.content === "yo Teto, give this chud a bailout") {
         if (Commands.isItBoss(msg.author.id) || Commands.isItAdmin(msg)) {
@@ -279,7 +279,7 @@ client.on('messageCreate', async msg => {
                 msg.reply("Tossed that chud 100 chips for ya boss")
 
             } catch(err) {
-                console.error(err)
+                console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")
                 msg.reply("I fucked up")
             }
         }
