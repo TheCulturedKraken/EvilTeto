@@ -578,10 +578,10 @@ async function saySomethingMeanTargetted(msg) {
     try {
         const targetMessage = await msg.channel.messages.fetch(msg.reference.messageId)
 
-        //if (!targetMessage) {
-        //    msg.reply("wait who am I insulting? I need a message to reply to.")
-        //    return
-        //}
+        if (!targetMessage) {
+            msg.reply("wait who am I insulting? I need a message to reply to.")
+            return
+        }
 
         if (isItBoss(targetMessage.author.id)) {
             msg.reply("I'm way more loyal to him than you :joy::v:")
