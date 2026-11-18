@@ -1,54 +1,76 @@
-//FIRST TEST WORKS!
 require('dotenv').config()
 
-const Discord = require("discord.js");
-const DiscordVoice = require("@discordjs/voice")
-const PermissionFlagBits = Discord.PermissionFlagsBits
-const { ChannelType } = require("discord.js")
-const client = new Discord.Client({ intents : [
-    Discord.GatewayIntentBits.Guilds,
-    Discord.GatewayIntentBits.GuildMessages,
-    Discord.GatewayIntentBits.MessageContent,
-    Discord.GatewayIntentBits.DirectMessages,
-    Discord.GatewayIntentBits.GuildPresences,
-    Discord.GatewayIntentBits.GuildBans,
-    Discord.GatewayIntentBits.GuildModeration,
-    Discord.GatewayIntentBits.GuildVoiceStates,
-    Discord.GatewayIntentBits.GuildMessageReactions,
-    Discord.GatewayIntentBits.GuildMembers,
-], partials: [
-    Discord.Partials.Message,
-    Discord.Partials.Channel,
-    Discord.Partials.Reaction,
-    Discord.Partials.User,
-    Discord.Partials.GuildMember
-]
+const Discord = require('discord.js')
+const DiscordVoice = require('@discordjs/voice')
+const { ChannelType, PermissionFlagsBits } = Discord
 
-});
-
-const Busy = new Map()
-const token = process.env.TOKEN
 const Commands = require('./commands.js')
 const VoiceCommands = require('./voicecommands.js')
-const Hangman = require('./hangman.js');
+const Hangman = require('./hangman.js')
 const Embedcommand = require('./embedCommand.js')
-const { isPersonalityDisabled, setPersonalityDisabled } = require('./personalityState.js');
+const { isPersonalityDisabled, setPersonalityDisabled } = require('./personalityState.js')
 
-//===========================================================================================
-// Casino Variables
-//===========================================================================================
+const Casino = require('./casino/CasinoRouter.js')
+const economyModule = require('./casino/economy.js')
 
-const Casino = require("./casino/CasinoRouter.js")
-const economyModule = require("./casino/economy.js");
-const activeCasinoGames = require('./casino/activeGames');
+const client = new Discord.Client({
+    intents: [
+        Discord.GatewayIntentBits.Guilds,
+        Discord.GatewayIntentBits.GuildMessages,
+        Discord.GatewayIntentBits.MessageContent,
+        Discord.GatewayIntentBits.DirectMessages,
+        Discord.GatewayIntentBits.GuildPresences,
+        Discord.GatewayIntentBits.GuildBans,
+        Discord.GatewayIntentBits.GuildModeration,
+        Discord.GatewayIntentBits.GuildVoiceStates,
+        Discord.GatewayIntentBits.GuildMessageReactions,
+        Discord.GatewayIntentBits.GuildMembers,
+    ],
+    partials: [
+        Discord.Partials.Message,
+        Discord.Partials.Channel,
+        Discord.Partials.Reaction,
+        Discord.Partials.User,
+        Discord.Partials.GuildMember,
+    ],
+})
+
+const COMMAND_PREFIX = 'yo Teto,'
+
+// guild id -> true while a game (hangman) is running there
+const Busy = new Map()
 
 client.on('clientReady', () => {
     console.log('Logged in as ' + client.user.tag + '!')
 })
 
 //============================================================================================
-// Personality Block
+// Shared helpers
 //============================================================================================
+
+const hasAuthority = (msg) => Commands.isItBoss(msg.author.id) || Commands.isItAdmin(msg)
+
+/** Log, DM the boss, and tell the channel. */
+async function reportError(msg, err) {
+    console.error(err)
+    await Commands.notifyBossOfError(msg, err)
+    msg.reply('I fucked up')
+}
+
+/**
+ * The message the command was replying to, or null if the command isn't a
+ * reply. Throws if the referenced message can't be fetched.
+ */
+async function fetchReferencedMessage(msg) {
+    const id = msg.reference?.messageId
+    if (!id) return null
+    return msg.channel.messages.fetch(id)
+}
+
+//============================================================================================
+// Personality Block (random insults based on role)
+//============================================================================================
+
 const meanRoles = {
     'teto hate': 0.05,          // 5%
     'super teto hate': 0.10,    // 10%
@@ -56,389 +78,358 @@ const meanRoles = {
     'pure teto spite': 0.90,    // 90%
 }
 
+/** Highest insult chance among the member's "Teto hate" roles (0 if none). */
+function getMeanChance(member) {
+    let chance = 0
+    for (const [roleName, roleChance] of Object.entries(meanRoles)) {
+        if (member.roles.cache.some(role => role.name.toLowerCase() === roleName)) {
+            chance = Math.max(chance, roleChance)
+        }
+    }
+    return chance
+}
+
 client.on('messageCreate', msg => {
     try {
-    if (msg.author.bot) return;
-    if (!msg.guild) return;
-    if (isPersonalityDisabled(msg.guild.id)) return;
+        if (msg.author.bot) return
+        if (!msg.guild) return
+        if (isPersonalityDisabled(msg.guild.id)) return
 
-    var content = msg.content.toLowerCase();
-    if (msg.mentions.has(client.user)) {
-        if (content.includes("fuck you")) {
-            msg.reply("I bet you wish you could twerp :v:")
-        } else if (content.includes("ily") || content.includes("i love you")) {
-            msg.reply("It's not mutual.")
+        const content = msg.content.toLowerCase()
+        if (msg.mentions.has(client.user)) {
+            if (content.includes('fuck you')) {
+                msg.reply('I bet you wish you could twerp :v:')
+            } else if (content.includes('ily') || content.includes('i love you')) {
+                msg.reply("It's not mutual.")
+            }
         }
-    }
-    
-    let chance = 0;
-    
-    for (const [roleName, rollChance] of Object.entries(meanRoles)) {
-        if (msg.member.roles.cache.some(role => role.name.toLowerCase() === roleName)) {
-            chance = Math.max(chance, rollChance);
-        }
-    }
-    
-    if (chance <= 0 || Busy.get(msg.guild.id)) { return; }
 
-    if (Math.random() < chance) {
-        Commands.saySomethingMean(msg)
-    }
-    } catch(err) {
+        const chance = getMeanChance(msg.member)
+        if (chance <= 0 || Busy.get(msg.guild.id)) return
+
+        if (Math.random() < chance) {
+            Commands.saySomethingMean(msg)
+        }
+    } catch (err) {
         console.error(err)
-        msg.reply("I fucked up")
+        msg.reply('I fucked up')
     }
 })
 
 //============================================================================================
-// Gatekept Command Logging
+// Command handlers that need more than a one-liner
 //============================================================================================
-const gatekeptCommands = [
-    "yo Teto, time this grunt out",
-    "yo Teto, nuke this chud",
-    "yo Teto, get rid of ts",
-    "yo Teto, kill them",
-    "yo Teto, close this ticket",
-    "yo Teto, make an embed",
-    "yo Teto, whats this dicks ID",
-    "yo Teto, clear some of this shit out",
-    "yo Teto, silence this chud",
-    "yo Teto, let it speak",
-    "yo Teto, make it deaf",
-    "yo Teto, let it hear",
-    "yo Teto, get rid of this dickhead",
-    "yo Teto, cut the attitude",
-    "yo Teto, you can act up",
-    "yo Teto, make this guy rich asf",
-    "yo Teto, give this chud a bailout",
-]
 
-client.on('messageCreate', async msg => {
-    if (msg.author.bot) return;
-    if (!gatekeptCommands.includes(msg.content)) return;
-    if (!Commands.isItAdmin(msg)) return;
-    await Commands.notifyBossOfAdminUse(msg)
-})
-
-//============================================================================================
-// Text Channel Commands
-//============================================================================================
-client.on('messageCreate', async msg => {
-    if (!msg.content.startsWith("yo Teto,")) { return }
-    if (msg.author.bot) return;
-    // MemberCount command
-    if (msg.content === 'yo Teto, how many bums I got in this server?') {
-        try { await Commands.maybeConfirm(msg, () => Commands.memberCount(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up"); }
-    // Timeout Command
-    } else if (msg.content === "yo Teto, time this grunt out") { 
-        try { await Commands.maybeConfirm(msg,() => Commands.timeOutCommand(msg))} catch(err) {console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    //delete message Command
-    } else if (msg.content === "yo Teto, clear some of this shit out") {
-        try {await Commands.maybeConfirm(msg, () => Commands.bulkDelete(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //kick Command
-    } else if (msg.content === 'yo Teto, nuke this chud') {
-        try {await Commands.maybeConfirm(msg, () => Commands.kickMember(msg))} catch(err) {console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    //Specific delete command
-    } else if (msg.content === 'yo Teto, get rid of ts') {
-        try {await Commands.maybeConfirm(msg, () => Commands.deleteSpecific(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    //pull specific user id
-    } else if (msg.content === "yo Teto, whats this dicks ID") {
-        try {await Commands.maybeConfirm(msg, () => Commands.getUserID(msg))} catch(err) {console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    //Targetted insult command
-    } else if (msg.content === 'yo Teto, fry this bitch') {
-        try {await Commands.maybeConfirm(msg, () => Commands.saySomethingMeanTargetted(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //28 day timeout command
-    } else if (msg.content === 'yo Teto, kill them') {
-        try {await Commands.maybeConfirm(msg, () => Commands.slaughter(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //Force leave server command
-    } else if (msg.content == "yo Teto, they don't deserve you here, just leave em") {
-        try {await Commands.maybeConfirm(msg, () => Commands.leaveServer(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //leave server by ID command
-    } else if (Commands.LEAVE_PATTERN.test(msg.content.trim())) {
-        try { await Commands.leaveTargetServerID(msg, client) } catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //List all servers (DMs, boss only)
-    } else if (msg.content === "yo Teto, where all you at?") {
-        try { await Commands.listServers(msg, client) } catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //close ticket command
-    } else if (msg.content === "yo Teto, close this ticket") {
-        try {await Commands.maybeConfirm(msg, () => Commands.closeTicket(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //make embed command
-    } else if (msg.content === "yo Teto, make an embed") {
-        try {await Commands.maybeConfirm(msg, () => Embedcommand.createEmbed(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //teto Introduction command
-    } else if (msg.content === "yo Teto, introduce yourself") {
-        try {await Commands.maybeConfirm(msg, () => Commands.introduction(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //Teto setup command
-    } else if (msg.content === "yo Teto, get comfortable") {
-        try {await Commands.maybeConfirm(msg, () => Commands.bossSetup(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    //Admin introduction command
-    } else if (msg.content === "yo Teto, I'm an admin, tell me what you can do") {
-        try {await Commands.maybeConfirm(msg, () => Commands.adminIntroduction(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-
-        //personality block toggles
-    } else if (msg.content === "yo Teto, cut the attitude") {
-        if (!(Commands.isItBoss(msg.author.id)) && !(Commands.isItAdmin(msg))) return
-        setPersonalityDisabled(msg.guild.id, true);
-        msg.reply("You got it boss")
-    } else if (msg.content === "yo Teto, you can act up") {
-        if (!(Commands.isItBoss(msg.author.id)) && !(Commands.isItAdmin(msg))) return
-        setPersonalityDisabled(msg.guild.id, false);
-        msg.reply("*Malicious laughter*")
-    } else if (msg.content === "yo Teto, how you feelin right now?") {
-        if (isPersonalityDisabled(msg.guild.id)) {
-            msg.reply("Got to control myself.. 🙄")
-        } else {
-            msg.reply("I'm completely free.")
-        }
+async function joinVoice(msg) {
+    const channel = msg.member.voice.channel
+    if (!channel) {
+        return msg.reply("Dick you ain't even in a channel")
     }
-})
 
-//============================================================================================
-// Voice Channel Commands
-//============================================================================================
-client.on('messageCreate', async msg => {
-    if (msg.author.bot) return;
-    if (msg.content === "yo Teto, hop in here") {
-        try {
-            var channel = msg.member.voice.channel
+    DiscordVoice.joinVoiceChannel({
+        channelId: channel.id,
+        guildId: channel.guild.id,
+        adapterCreator: channel.guild.voiceAdapterCreator,
+    })
+    msg.reply('Aight bet')
+}
 
-            if (channel) {
-                const connection = DiscordVoice.joinVoiceChannel({
-                    channelId: channel.id,
-                    guildId: channel.guild.id,
-                    adapterCreator: channel.guild.voiceAdapterCreator
-                });
-                msg.reply("Aight bet")
-            } else {
-                msg.reply("Dick you ain't even in a channel")
-            }
-        } catch (err) {
-            await Commands.notifyBossOfError(msg, err);
-            msg.reply("I fucked up")
-        }
-    } else if (msg.content === 'yo Teto, get out bro') {
-        var connection = DiscordVoice.getVoiceConnection(msg.guildId);
-
-        if (connection) {
-            connection.destroy()
-            msg.reply("Aight I'm out")
-        } else {
-            msg.reply("You tripping?")
-        }
-    } else if (msg.content === "yo Teto, sing for me") {
-        try{VoiceCommands.playSong(msg)} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
-    } else if (msg.content === "yo Teto, silence this chud") {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.muteMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    } else if (msg.content === "yo Teto, let it speak") {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.unMuteMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    } else if (msg.content === 'yo Teto, make it deaf') {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.deafenMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    } else if (msg.content === "yo Teto, let it hear") {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.unDeafenMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")}
-    } else if (msg.content === 'yo Teto, get rid of this dickhead') {
-        try {await Commands.maybeConfirm(msg, () => VoiceCommands.disconnectMember(msg))} catch(err) { console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up") }
+function leaveVoice(msg) {
+    const connection = DiscordVoice.getVoiceConnection(msg.guildId)
+    if (!connection) {
+        return msg.reply('You tripping?')
     }
-})
 
-//============================================================================================
-// Games
-//============================================================================================
+    connection.destroy()
+    msg.reply("Aight I'm out")
+}
 
-client.on('messageCreate', async msg => {
-    if (msg.author.bot) return;
-    if (!msg.content.startsWith("yo Teto,")) { return }
-
-    if (msg.content === "yo Teto, let's play hangman") {
-        Busy.set(msg.guild.id, true)
-        try {
-            const players = await Commands.maybeConfirm(msg, () => Hangman.gatherPlayers(msg))
-            
-            if (!players || players === "no_players") {
-                Busy.set(msg.guild.id, false);
-                return;
-            }
-
-            await Hangman.hangMan(msg)
-
-        } catch(err) { 
-            console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")
-        }
-
-        Busy.set(msg.guild.id, false);
-    } else if (msg.content === "yo Teto, let's go gambling") {
-        try {
-            await Casino.start(msg)
-        } catch(err) {
-            console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")
-        }
-    } else if (msg.content === "yo Teto, give this chud a bailout") {
-        if (Commands.isItBoss(msg.author.id) || Commands.isItAdmin(msg)) {
-            try {
-                const targetMessage = await msg.channel.messages.fetch(msg.reference.messageId)
-                economyModule.addMoney(targetMessage.author.id, 100)
-                msg.reply("Tossed that chud 100 chips for ya boss")
-
-            } catch(err) {
-                console.error(err); await Commands.notifyBossOfError(msg, err); msg.reply("I fucked up")
-                msg.reply("I fucked up")
-            }
-        }
-    } else if (msg.content === "yo Teto, make this guy rich asf") {
-        if (Commands.isItBoss(msg.author.id) || Commands.isItAdmin(msg)) {
-            try {
-                const targetMessage = await msg.channel.messages.fetch(msg.reference.messageId)
-                economyModule.addMoney(targetMessage.author.id, 5000)
-                msg.reply("Gave them about 5000 chips, they rich af now")
-
-            } catch(err) {
-                console.error(err)
-                msg.reply("I fucked up")
-            }
-        }
+async function playHangman(msg) {
+    // Bail before touching Busy, or this request's finally would clear it for the running game
+    if (Hangman.isGameActive(msg.guild.id)) {
+        return msg.reply('Sorry, already playing a game!')
     }
-})
 
-//============================================================================================
-// React Roles
-//============================================================================================
-
-//Configured Messages
-const reactionRoles = {
-    "1534778101328904322": { //Newsletter react roles
-        "🎮": "1520165697374781591",
-        "📺": "1525304843294478446",
-        "📰": "1519512869853728998",
-    },
-
-    "1534784330344304773": { //Warhammer entry role
-        "✅": "1534784621978321038"
-    },
-
-    "1543089909609529426": { //Warhammer faction roles
-        "🐟": "1543094289129672806" ,
-        "🦈": "1543094429227946074" ,
-        "🪖": "1543094490959585342" ,
-        "🧝‍♂️": "1543094565714788362" ,
-        "🧝‍♀️": "1543094608571928728" ,
-        "👮": "1543096571296612473" ,
-        "⚜️": "1543094692365869137" ,
-        "⛏️": "1543094803607060510" ,
-        "🤖": "1543094885681201203" ,
-        "☯️": "1543094969844240486" ,
-        "😈": "1543095023673810994" , 
-        "🏅": "1543095068825755678" ,
-        "🐛": "1543095147234066462" ,
-        "🛠️": "1543095194348556359" ,
-        "💀": "1543095235444351086" ,
-        "👽": "1543095282009378826" ,
-    },
-
-    "1550208562897223843": {
-        "✅": "1550208300958621906", //Looking for game role
-    }
-};
-
-//Add Role
-client.on("messageReactionAdd", async (reaction, user) => {
-    // Ignore bots
-    if (user.bot) return;
-
-    // Fetch partials if necessary
-    if (reaction.partial) await reaction.fetch();
-    if (reaction.message.partial) await reaction.message.fetch();
-
-    // Is this a configured message?
-    const config = reactionRoles[reaction.message.id];
-    if (!config) return;
-
-    // Does the emoji match one of our configured roles?
-    const roleId = config[reaction.emoji.name];
-    if (!roleId) return;
-
+    Busy.set(msg.guild.id, true)
     try {
-        // Fetch member
-        const member = await reaction.message.guild.members.fetch(user.id);
-        // Add role
-        await member.roles.add(roleId);
-    } catch (err) {
-        console.error(err);
-    }
-});
+        const players = await Commands.maybeConfirm(msg, () => Hangman.gatherPlayers(msg))
+        if (!players || players === 'no_players') return
 
-//Remove Role
-client.on("messageReactionRemove", async (reaction, user) => {
-    if (user.bot) return;
-
-    if (reaction.partial) await reaction.fetch();
-    if (reaction.message.partial) await reaction.message.fetch();
-
-    const config = reactionRoles[reaction.message.id];
-    if (!config) return;
-
-    const roleId = config[reaction.emoji.name];
-    if (!roleId) return;
-
-    try {
-        const member = await reaction.message.guild.members.fetch(user.id);
-        await member.roles.remove(roleId);
-    } catch (err) {
-        console.error(err);
-    }
-});
-
-//============================================================================================
-// Ticket System
-//============================================================================================
-
-const ticketMessages = {
-    "1537569311269593229": {
-        "✉️": "1537569586835366029",
-        "🔨": "1537569634138722385"
+        await Hangman.hangMan(msg)
+    } finally {
+        Busy.set(msg.guild.id, false)
     }
 }
 
-client.on("messageReactionAdd", async (reaction, user) => {
-    if (user.bot) return;
+/** Builds a boss/admin-only handler that gives chips to the author of the replied-to message. */
+const giveChips = (amount, successText) => async (msg) => {
+    if (!hasAuthority(msg)) return
 
-    if (reaction.partial) await reaction.fetch();
-    if (reaction.message.partial) await reaction.message.fetch();
+    const targetMessage = await fetchReferencedMessage(msg)
+    if (!targetMessage) {
+        return msg.reply('Reply to the message of whoever you want to give chips to.')
+    }
 
-    const guild = reaction.message.guild;
+    economyModule.addMoney(targetMessage.author.id, amount)
+    msg.reply(successText)
+}
+
+/** Builds a boss/admin-only handler that flips the personality switch for this server. */
+const setPersonality = (disabled, successText) => (msg) => {
+    if (!hasAuthority(msg)) return
+
+    setPersonalityDisabled(msg.guild.id, disabled)
+    msg.reply(successText)
+}
+
+function personalityStatus(msg) {
+    if (isPersonalityDisabled(msg.guild.id)) {
+        msg.reply('Got to control myself.. 🙄')
+    } else {
+        msg.reply("I'm completely free.")
+    }
+}
+
+//============================================================================================
+// Command tables
+//
+// directCommands: run as-is.
+// gatedCommands:  run through Commands.maybeConfirm (Teto's random "are you sure?" / "fuck off").
+//============================================================================================
+
+const directCommands = new Map([
+    // Voice
+    ['yo Teto, hop in here', joinVoice],
+    ['yo Teto, get out bro', leaveVoice],
+    ['yo Teto, sing for me', (msg) => VoiceCommands.playSong(msg)],
+
+    // Games
+    ["yo Teto, let's play hangman", playHangman],
+    ["yo Teto, let's go gambling", (msg) => Casino.start(msg)],
+    ['yo Teto, give this chud a bailout', giveChips(100, 'Tossed that chud 100 chips for ya boss')],
+    ['yo Teto, make this guy rich asf', giveChips(5000, 'Gave them about 5000 chips, they rich af now')],
+
+    // Personality toggles
+    ['yo Teto, cut the attitude', setPersonality(true, 'You got it boss')],
+    ['yo Teto, you can act up', setPersonality(false, '*Malicious laughter*')],
+    ['yo Teto, how you feelin right now?', personalityStatus],
+
+    // Boss only (DMs)
+    ['yo Teto, where all you at?', (msg) => Commands.listServers(msg, client)],
+])
+
+const gatedCommands = new Map([
+    // Info
+    ['yo Teto, how many bums I got in this server?', (msg) => Commands.memberCount(msg)],
+    ['yo Teto, introduce yourself', (msg) => Commands.introduction(msg)],
+    ["yo Teto, I'm an admin, tell me what you can do", (msg) => Commands.adminIntroduction(msg)],
+
+    // Insults
+    ['yo Teto, fry this bitch', (msg) => Commands.saySomethingMeanTargetted(msg)],
+
+    // Moderation
+    ['yo Teto, time this grunt out', (msg) => Commands.timeOutCommand(msg)],
+    ['yo Teto, kill them', (msg) => Commands.slaughter(msg)],
+    ['yo Teto, nuke this chud', (msg) => Commands.kickMember(msg)],
+    ['yo Teto, clear some of this shit out', (msg) => Commands.bulkDelete(msg)],
+    ['yo Teto, get rid of ts', (msg) => Commands.deleteSpecific(msg)],
+    ['yo Teto, whats this dicks ID', (msg) => Commands.getUserID(msg)],
+    ['yo Teto, close this ticket', (msg) => Commands.closeTicket(msg)],
+    ['yo Teto, make an embed', (msg) => Embedcommand.createEmbed(msg)],
+
+    // Voice moderation
+    ['yo Teto, silence this chud', (msg) => VoiceCommands.muteMember(msg)],
+    ['yo Teto, let it speak', (msg) => VoiceCommands.unMuteMember(msg)],
+    ['yo Teto, make it deaf', (msg) => VoiceCommands.deafenMember(msg)],
+    ['yo Teto, let it hear', (msg) => VoiceCommands.unDeafenMember(msg)],
+    ['yo Teto, get rid of this dickhead', (msg) => VoiceCommands.disconnectMember(msg)],
+
+    // Boss only
+    ["yo Teto, they don't deserve you here, just leave em", (msg) => Commands.leaveServer(msg)],
+    ['yo Teto, get comfortable', (msg) => Commands.bossSetup(msg)],
+])
+
+//============================================================================================
+// Gatekept Command Logging (DM the boss when an admin uses one of these)
+//============================================================================================
+
+const GATEKEPT_COMMANDS = new Set([
+    'yo Teto, time this grunt out',
+    'yo Teto, nuke this chud',
+    'yo Teto, get rid of ts',
+    'yo Teto, kill them',
+    'yo Teto, close this ticket',
+    'yo Teto, make an embed',
+    'yo Teto, whats this dicks ID',
+    'yo Teto, clear some of this shit out',
+    'yo Teto, silence this chud',
+    'yo Teto, let it speak',
+    'yo Teto, make it deaf',
+    'yo Teto, let it hear',
+    'yo Teto, get rid of this dickhead',
+    'yo Teto, cut the attitude',
+    'yo Teto, you can act up',
+    'yo Teto, make this guy rich asf',
+    'yo Teto, give this chud a bailout',
+])
+
+//============================================================================================
+// Command dispatcher
+//============================================================================================
+
+async function runCommand(msg) {
+    const direct = directCommands.get(msg.content)
+    if (direct) return direct(msg)
+
+    const gated = gatedCommands.get(msg.content)
+    if (gated) return Commands.maybeConfirm(msg, () => gated(msg))
+
+    // Boss only: leave a server by ID (DMs)
+    if (Commands.LEAVE_PATTERN.test(msg.content.trim())) {
+        return Commands.leaveTargetServerID(msg, client)
+    }
+}
+
+client.on('messageCreate', async msg => {
+    if (msg.author.bot) return
+    if (!msg.content.startsWith(COMMAND_PREFIX)) return
+
+    // Fire-and-forget: notifyBossOfAdminUse handles its own errors
+    if (GATEKEPT_COMMANDS.has(msg.content) && Commands.isItAdmin(msg)) {
+        Commands.notifyBossOfAdminUse(msg)
+    }
+
+    try {
+        await runCommand(msg)
+    } catch (err) {
+        await reportError(msg, err)
+    }
+})
+
+//============================================================================================
+// Reactions: React Roles + Tickets
+//============================================================================================
+
+// message id -> { emoji -> role id }
+const reactionRoles = {
+    '1534778101328904322': { // Newsletter react roles
+        '🎮': '1520165697374781591',
+        '📺': '1525304843294478446',
+        '📰': '1519512869853728998',
+    },
+
+    '1534784330344304773': { // Warhammer entry role
+        '✅': '1534784621978321038',
+    },
+
+    '1543089909609529426': { // Warhammer faction roles
+        '🐟': '1543094289129672806',
+        '🦈': '1543094429227946074',
+        '🪖': '1543094490959585342',
+        '🧝‍♂️': '1543094565714788362',
+        '🧝‍♀️': '1543094608571928728',
+        '👮': '1543096571296612473',
+        '⚜️': '1543094692365869137',
+        '⛏️': '1543094803607060510',
+        '🤖': '1543094885681201203',
+        '☯️': '1543094969844240486',
+        '😈': '1543095023673810994',
+        '🏅': '1543095068825755678',
+        '🐛': '1543095147234066462',
+        '🛠️': '1543095194348556359',
+        '💀': '1543095235444351086',
+        '👽': '1543095282009378826',
+    },
+
+    '1550208562897223843': {
+        '✅': '1550208300958621906', // Looking for game role
+    },
+}
+
+// message id -> { emoji -> ticket category id }
+const ticketMessages = {
+    '1537569311269593229': {
+        '✉️': '1537569586835366029',
+        '🔨': '1537569634138722385',
+    },
+}
+
+async function fetchPartials(reaction) {
+    if (reaction.partial) await reaction.fetch()
+    if (reaction.message.partial) await reaction.message.fetch()
+}
+
+/** Adds or removes the configured role for this reaction. action is 'add' or 'remove'. */
+async function applyReactionRole(reaction, user, action) {
+    const roleId = reactionRoles[reaction.message.id]?.[reaction.emoji.name]
+    if (!roleId) return
+
+    try {
+        const member = await reaction.message.guild.members.fetch(user.id)
+        await member.roles[action](roleId)
+    } catch (err) {
+        console.error(err)
+    }
+}
+
+async function openTicket(reaction, user) {
+    const guild = reaction.message.guild
     if (!guild) {
-        console.log("No guild detected");
+        console.log('No guild detected')
         return
     }
 
-    const config = ticketMessages[reaction.message.id]
-    if (!config) return
-
-    const ticketCategory = config[reaction.emoji.name]
+    const ticketCategory = ticketMessages[reaction.message.id]?.[reaction.emoji.name]
     if (!ticketCategory) return
 
     try {
-
         const ticketChannel = await guild.channels.create({
-            name: user.globalName + "'s-ticket",
+            name: (user.globalName ?? user.username) + "'s-ticket",
             type: ChannelType.GuildText,
             parent: ticketCategory,
-            permissionOverwrites : [
+            permissionOverwrites: [
                 {
                     id: guild.roles.everyone.id,
-                    deny: [PermissionFlagBits.ViewChannel]
+                    deny: [PermissionFlagsBits.ViewChannel],
                 },
                 {
                     id: user.id,
-                    allow: [PermissionFlagBits.ViewChannel, PermissionFlagBits.SendMessages]
-                }
-            ]
+                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+                },
+            ],
         })
 
-        await ticketChannel.send('<@'+user.id+">, Here's your ticket. Wait for Kraken or some other bozo to get to you")
-
-    } catch(err) {
+        await ticketChannel.send('<@' + user.id + ">, Here's your ticket. Wait for Kraken or some other bozo to get to you")
+    } catch (err) {
         console.log(err)
     }
-});
+}
 
+client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return
 
-client.login(token)
+    try {
+        await fetchPartials(reaction)
+    } catch (err) {
+        console.error(err)
+        return
+    }
+
+    await applyReactionRole(reaction, user, 'add')
+    await openTicket(reaction, user)
+})
+
+client.on('messageReactionRemove', async (reaction, user) => {
+    if (user.bot) return
+
+    try {
+        await fetchPartials(reaction)
+    } catch (err) {
+        console.error(err)
+        return
+    }
+
+    await applyReactionRole(reaction, user, 'remove')
+})
+
+client.login(process.env.TOKEN)
