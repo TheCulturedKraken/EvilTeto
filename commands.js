@@ -378,7 +378,7 @@ function isItAdmin(msg) {
     return msg.member?.permissions.has(PermissionsBitField.Flags.Administrator) ?? false
 }
 
-async function notifyBoss(msg) {
+async function notifyBossOfAdminUse(msg) {
     if (isItBoss(msg.author.id)) return // don't DM yourself
 
     try {
@@ -394,6 +394,22 @@ async function notifyBoss(msg) {
     }
 }
 
+async function notifyBossOfError(msg, error) {
+    if (isItBoss(msg.author.id)) return // don't DM yourself
+
+    try {
+        const boss = await msg.client.users.fetch(BOSS_ID)
+        await boss.send(
+            `**Error occurred:** ${error.message}\n` +
+            `**User ID:** ${msg.author.id}\n` +
+            `**Channel:** ${msg.channel.name}\n` +
+            `**Server:** ${msg.guild?.name}\n` +
+            `**Command:** ${msg.content}`
+        )
+    } catch (err) {
+        console.error('Failed to DM boss:', err)
+    }
+}
 
 function rollChance(max) {
     return Math.floor(Math.random() * max) + 1;
@@ -456,7 +472,7 @@ function memberCount(msg) {
     msg.reply("Well shit you got about " + guild.memberCount + " in here.")
 }
 
-function timeOutCommand(msg) {
+async function timeOutCommand(msg) {
     if (!isItBoss(msg.author.id) && !isItAdmin(msg)) { return }
     
     if (isItBoss(msg.author.id)) {
@@ -484,10 +500,11 @@ function timeOutCommand(msg) {
     } catch (err) {
         console.error(err);
         msg.reply("I fucked up")
+        await NotifyBossOfError(msg, err)
     }
 }
 
-function bulkDelete(msg) {
+async function bulkDelete(msg) {
     if (isItBoss(msg.author.id) || isItAdmin(msg)) {
 
         var amount = 15;
@@ -497,6 +514,7 @@ function bulkDelete(msg) {
         } catch (err) {
             console.error(err)
             msg.reply("I fucked up")
+            await NotifyBossOfError(msg, err)
         }
     }
 }
@@ -517,6 +535,7 @@ async function deleteSpecific(msg) {
         }
     } catch(err) {
         msg.reply("I fucked up")
+        await NotifyBossOfError(msg, err)
     }
 }
 
@@ -531,10 +550,11 @@ async function getUserID(msg) {
         msg.reply("This bum's ID is " + targetMessage.author.id)
     } catch(err) {
         msg.reply("I fucked up")
+        await NotifyBossOfError(msg, err)
     }
 }
 
-function kickMember(msg) {
+async function kickMember(msg) {
     if (isItBoss(msg.author.id) || isItAdmin(msg)) {
         msg.reply("Oh hell yeah")
         var target = msg.mentions.members.first();
@@ -549,6 +569,7 @@ function kickMember(msg) {
         } catch (err) {
             console.error(err)
             msg.reply("I fucked up")
+            await NotifyBossOfError(msg, err)
         }
     }
 }
@@ -568,6 +589,7 @@ async function saySomethingMeanTargetted(msg) {
     } catch(err) {
         console.error(err)
         msg.reply("I fucked up")
+        await NotifyBossOfError(msg, err)
     }
 }
 
@@ -595,7 +617,8 @@ async function slaughter(msg) {
             if (err.code === 50013) {
                 msg.reply("I don't have perms")
             } else {
-                msg.reply("I fucked up")
+                await NotifyBossOfError(msg, err)
+                return msg.reply("I fucked up")
             }
         }
     } else {
@@ -626,6 +649,7 @@ async function closeTicket(msg) {
     } catch (err) {
         console.error(err)
         msg.reply("I fucked up")
+        await NotifyBossOfError(msg, err)
     }
 }
 
@@ -757,6 +781,7 @@ async function leaveTargetServerID(msg, client) {
         reply = collected.first().content.toLowerCase();
     } catch (err) {
         console.error(err);
+        await NotifyBossOfError(msg, err);
         return msg.reply("I fucked up");
     }
 
@@ -769,7 +794,8 @@ async function leaveTargetServerID(msg, client) {
         msg.reply(`Left the server with ID: ${serverID}`);
     } catch (err) {
         console.error(err);
-        msg.reply("I fucked up");
+        await NotifyBossOfError(msg, err);
+        return msg.reply("I fucked up");
     }
 }
 
@@ -803,7 +829,8 @@ async function listServers(msg, client) {
 module.exports = {
     isItBoss,
     isItAdmin,
-    notifyBoss,
+    notifyBossOfAdminUse,
+    notifyBossOfError,
     memberCount,
     timeOutCommand,
     bulkDelete,
