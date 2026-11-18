@@ -575,13 +575,13 @@ async function kickMember(msg) {
 async function saySomethingMeanTargetted(msg) {
     //if (!isItBoss(msg.author.id)) { return }
 
+    if (!msg.reference?.messageId) {
+        msg.reply("wait who am I insulting? I need a message to reply to.")
+        return
+    }
+
     try {
         const targetMessage = await msg.channel.messages.fetch(msg.reference.messageId)
-
-        if (!targetMessage) {
-            msg.reply("wait who am I insulting? I need a message to reply to.")
-            return
-        }
 
         if (isItBoss(targetMessage.author.id)) {
             msg.reply("I'm way more loyal to him than you :joy::v:")
@@ -591,8 +591,8 @@ async function saySomethingMeanTargetted(msg) {
 
     } catch(err) {
         console.error(err)
-        await notifyBossOfError(msg, err)
         msg.reply("I fucked up")
+        await notifyBossOfError(msg, err)
     }
 }
 
