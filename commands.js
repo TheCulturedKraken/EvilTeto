@@ -500,7 +500,7 @@ async function timeOutCommand(msg) {
     } catch (err) {
         console.error(err);
         msg.reply("I fucked up")
-        await NotifyBossOfError(msg, err)
+        await notifyBossOfError(msg, err)
     }
 }
 
@@ -514,7 +514,7 @@ async function bulkDelete(msg) {
         } catch (err) {
             console.error(err)
             msg.reply("I fucked up")
-            await NotifyBossOfError(msg, err)
+            await notifyBossOfError(msg, err)
         }
     }
 }
@@ -535,7 +535,7 @@ async function deleteSpecific(msg) {
         }
     } catch(err) {
         msg.reply("I fucked up")
-        await NotifyBossOfError(msg, err)
+        await notifyBossOfError(msg, err)
     }
 }
 
@@ -550,7 +550,7 @@ async function getUserID(msg) {
         msg.reply("This bum's ID is " + targetMessage.author.id)
     } catch(err) {
         msg.reply("I fucked up")
-        await NotifyBossOfError(msg, err)
+        await notifyBossOfError(msg, err)
     }
 }
 
@@ -569,7 +569,7 @@ async function kickMember(msg) {
         } catch (err) {
             console.error(err)
             msg.reply("I fucked up")
-            await NotifyBossOfError(msg, err)
+            await notifyBossOfError(msg, err)
         }
     }
 }
@@ -580,6 +580,11 @@ async function saySomethingMeanTargetted(msg) {
     try {
         const targetMessage = await msg.channel.messages.fetch(msg.reference.messageId)
 
+        //if (!targetMessage) {
+        //    msg.reply("wait who am I insulting? I need a message to reply to.")
+        //    return
+        //}
+
         if (isItBoss(targetMessage.author.id)) {
             msg.reply("I'm way more loyal to him than you :joy::v:")
         } else {
@@ -589,7 +594,7 @@ async function saySomethingMeanTargetted(msg) {
     } catch(err) {
         console.error(err)
         msg.reply("I fucked up")
-        await NotifyBossOfError(msg, err)
+        await notifyBossOfError(msg, err)
     }
 }
 
@@ -617,7 +622,7 @@ async function slaughter(msg) {
             if (err.code === 50013) {
                 msg.reply("I don't have perms")
             } else {
-                await NotifyBossOfError(msg, err)
+                await notifyBossOfError(msg, err)
                 return msg.reply("I fucked up")
             }
         }
@@ -649,7 +654,7 @@ async function closeTicket(msg) {
     } catch (err) {
         console.error(err)
         msg.reply("I fucked up")
-        await NotifyBossOfError(msg, err)
+        await notifyBossOfError(msg, err)
     }
 }
 
@@ -781,7 +786,7 @@ async function leaveTargetServerID(msg, client) {
         reply = collected.first().content.toLowerCase();
     } catch (err) {
         console.error(err);
-        await NotifyBossOfError(msg, err);
+        await notifyBossOfError(msg, err);
         return msg.reply("I fucked up");
     }
 
@@ -794,7 +799,7 @@ async function leaveTargetServerID(msg, client) {
         msg.reply(`Left the server with ID: ${serverID}`);
     } catch (err) {
         console.error(err);
-        await NotifyBossOfError(msg, err);
+        await notifyBossOfError(msg, err);
         return msg.reply("I fucked up");
     }
 }
