@@ -1,301 +1,169 @@
-const commands = require("./commands")
-const Discord = require("discord.js")
-const hangmanWords = [
-  "apple",
-  "banana",
-  "cherry",
-  "orange",
-  "grape",
-  "watermelon",
-  "pineapple",
-  "strawberry",
-  "blueberry",
-  "raspberry",
-  "mango",
-  "peach",
-  "apricot",
-  "coconut",
-  "pomegranate",
-  "computer",
-  "keyboard",
-  "monitor",
-  "internet",
-  "javascript",
-  "discord",
-  "database",
-  "network",
-  "browser",
-  "software",
-  "hardware",
-  "algorithm",
-  "developer",
-  "terminal",
-  "function",
-  "variable",
-  "elephant",
-  "giraffe",
-  "kangaroo",
-  "alligator",
-  "penguin",
-  "dolphin",
-  "cheetah",
-  "rhinoceros",
-  "hippopotamus",
-  "chimpanzee",
-  "dragon",
-  "wizard",
-  "sorcerer",
-  "paladin",
-  "necromancer",
-  "warlock",
-  "dungeon",
-  "kingdom",
-  "adventure",
-  "treasure",
-  "phoenix",
-  "griffin",
-  "vampire",
-  "werewolf",
-  "castle",
-  "galaxy",
-  "planet",
-  "asteroid",
-  "satellite",
-  "spaceship",
-  "nebula",
-  "supernova",
-  "comet",
-  "meteor",
-  "blackhole",
-  "universe",
-  "gravity",
-  "oxygen",
-  "hydrogen",
-  "science",
-  "biology",
-  "chemistry",
-  "physics",
-  "equation",
-  "molecule",
-  "volcano",
-  "earthquake",
-  "hurricane",
-  "tornado",
-  "thunderstorm",
-  "avalanche",
-  "tsunami",
-  "mountain",
-  "desert",
-  "rainforest",
-  "cavern",
-  "library",
-  "museum",
-  "restaurant",
-  "hospital",
-  "school",
-  "university",
-  "stadium",
-  "airport",
-  "highway",
-  "submarine",
-  "motorcycle",
-  "bicycle",
-  "helicopter",
-  "parachute",
-  "backpack",
-  "flashlight",
-  "notebook",
-  "sandwich",
-  "pancakes",
-  "spaghetti",
-  "hamburger",
-  "milkshake",
-  "chocolate",
-  "popcorn",
-  "marshmallow",
-  "cinnamon",
-  "diamond",
-  "emerald",
-  "sapphire",
-  "crystal",
-  "treasure",
-  "mystery",
-  "shadow",
-  "silhouette",
-  "midnight",
-  "sunrise",
-  "moonlight",
-  "daydream",
-  "nightmare",
-  "labyrinth",
-  "crossroad",
-  "wanderer",
-  "guardian",
-  "champion",
-  "outlaw",
-  "mercenary",
-  "assassin",
-  "gladiator",
-  "detective",
-  "engineer",
-  "architect",
-  "musician",
-  "painter",
-  "sculpture",
-  "festival",
-  "fireworks",
-  "celebration",
-  "vacation",
-  "adrenaline",
-  "whirlwind",
-  "masterpiece",
-  "imagination",
-  "friendship",
-  "adversity",
-  "resilience",
-  "determination",
-  "constellation",
-  "symphony",
-  "revolution",
-  "civilization",
-  "enchantment",
-  "reincarnation",
-  "metamorphosis"
-]
+const hangmanWords = require('./hangmanWords')
 
-const games = new Map()
+const MAX_LIVES = 6
+const LOBBY_MS = 15000
+const GAME_IDLE_MS = 5 * 60 * 1000 // end an abandoned game so it can't block the server forever
+const HIDDEN_TILE = ':white_large_square: ' // trailing space is intentional (matches the original layout)
 
-var gameActive = new Map()
-/*var usersPlaying = []
-var guessedletters = []
-var lives = 6;*/
+/**
+ * One entry per guild with a lobby or game in progress.
+ * guildId -> { phase: 'lobby' | 'playing', players: string[], word, guessed: Set<string>, lives }
+ */
+const sessions = new Map()
 
-function chooseWord() {
-    return hangmanWords[Math.floor(Math.random() * hangmanWords.length)];
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const chooseWord = () => hangmanWords[Math.floor(Math.random() * hangmanWords.length)]
+
+const isSolved = ({ word, guessed }) => [...word].every((letter) => guessed.has(letter))
+
+const renderWord = ({ word, guessed }) =>
+    [...word].map((letter) => (guessed.has(letter) ? letter : HIDDEN_TILE)).join(' ')
+
+function isGameActive(guildId) {
+    return sessions.has(guildId)
 }
 
-async function gatherPlayers(msg) {
-    return new Promise((resolve, reject) => {
+// ---------------------------------------------------------------------------
+// Lobby
+// ---------------------------------------------------------------------------
 
-    if (gameActive.get(msg.guild.id)) {
-        return msg.reply("Sorry, already playing a game!")
+/**
+ * Opens a 15 second lobby where people can say "join".
+ * Resolves with the array of player IDs, or "no_players" if nobody joined
+ * or a game is already running in this server.
+ */
+function gatherPlayers(msg) {
+    const guildId = msg.guild.id
+
+    if (sessions.has(guildId)) {
+        msg.reply('Sorry, already playing a game!')
+        return Promise.resolve('no_players')
     }
 
-    gameActive.set(msg.guild.id, true)
+    const session = { phase: 'lobby', players: [] }
+    sessions.set(guildId, session)
+
     msg.reply('Alright sure, whoever wants to play can just say "Join"')
-    
-    usersPlaying = []
 
-    const filter = response => {
-        return response.content.toLowerCase() === 'join';
-    };
+    return new Promise((resolve) => {
+        const collector = msg.channel.createMessageCollector({
+            filter: (response) => !response.author.bot && response.content.toLowerCase() === 'join',
+            time: LOBBY_MS,
+        })
 
-    const collector = msg.channel.createMessageCollector({
-        filter, 
-        time: 15000
+        collector.on('collect', (m) => {
+            if (session.players.includes(m.author.id)) return
+
+            session.players.push(m.author.id)
+            msg.channel.send(m.author.username + ' is in')
+        })
+
+        collector.on('end', () => {
+            if (session.players.length === 0) {
+                sessions.delete(guildId)
+                msg.channel.send('Guess nobody wanted to play')
+                return resolve('no_players')
+            }
+
+            msg.channel.send("Alright, we're starting with " + session.players.length + ' players then')
+            resolve(session.players)
+        })
     })
+}
 
-    collector.on('collect', m => {
-        if (!usersPlaying.includes(m.author.id)) {
-            usersPlaying.push(m.author.id)
-            msg.channel.send(m.author.username + " is in")
-        }
-    });
+// ---------------------------------------------------------------------------
+// Game
+// ---------------------------------------------------------------------------
 
-    collector.on("end", () => {
+/**
+ * Plays a game with the players from gatherPlayers.
+ * Resolves with "win", "lose", "ended" (idle timeout / error), or
+ * "no_players" if there is no lobby to start from.
+ */
+function hangMan(msg) {
+    const guildId = msg.guild.id
+    const session = sessions.get(guildId)
 
-        if (usersPlaying.length === 0) {
-            gameActive.set(msg.guild.id, false)
-            msg.channel.send("Guess nobody wanted to play")
-            return resolve("no_players")
+    // gatherPlayers never ran, nobody joined, or the game already started
+    if (!session || session.phase !== 'lobby' || session.players.length === 0) {
+        return Promise.resolve('no_players')
+    }
+
+    session.phase = 'playing'
+    session.word = chooseWord()
+    session.guessed = new Set()
+    session.lives = MAX_LIVES
+
+    return new Promise((resolve) => {
+        let result = 'ended'
+        let done = false
+
+        const collector = msg.channel.createMessageCollector({
+            filter: (m) =>
+                !m.author.bot &&
+                session.players.includes(m.author.id) &&
+                /^[a-zA-Z]$/.test(m.content),
+            idle: GAME_IDLE_MS,
+        })
+
+        const finish = (outcome) => {
+            done = true
+            result = outcome
+            collector.stop()
         }
 
         msg.channel.send(
-            "Alright, we're starting with " + usersPlaying.length + " players then"
+            'Hangman started! \n\n' + renderWord(session) + '\n\nLives: ' + session.lives
         )
 
-        resolve(usersPlaying)
+        collector.on('collect', async (m) => {
+            if (done) return
+
+            try {
+                const guess = m.content.toLowerCase()
+
+                if (session.guessed.has(guess)) {
+                    return m.reply('That letter has already been guessed!')
+                }
+                session.guessed.add(guess)
+
+                if (!session.word.includes(guess)) {
+                    m.reply('Nope! Guessed wrong dumbass!')
+                    session.lives--
+                }
+
+                if (isSolved(session)) {
+                    done = true // stop handling guesses while the message sends
+                    await msg.channel.send('You got it! Congrats!\n **' + session.word + '**')
+                    return finish('win')
+                }
+
+                if (session.lives <= 0) {
+                    done = true
+                    await msg.channel.send('You lost! Dumbass!\nThe word was **' + session.word + '**')
+                    return finish('lose')
+                }
+
+                await msg.channel.send(renderWord(session) + '\n\nLives: ' + session.lives)
+            } catch (err) {
+                console.error(err)
+                finish('ended')
+            }
+        })
+
+        collector.on('end', () => {
+            sessions.delete(guildId)
+            msg.channel.send('Thanks for playing!')
+            resolve(result)
+        })
     })
-})}
-
-async function hangMan(msg) {
-    return new Promise((resolve) => {
-
-    const game = {
-        word: "",
-        guessedletters: [],
-        lives: 6,
-    }
-
-    game.word = chooseWord();
-
-    games.set(msg.guild.id, game)
-
-    const finishGame = (result) => {
-        gameActive.set(msg.guild.id, false);
-        collector.stop();
-        resolve(result);
-    }
-
-    let hiddenWord = game.word.split("").map(letter => ":white_large_square: ").join(" ")
-
-    msg.channel.send(
-        'Hangman started! \n\n' + hiddenWord + '\n\nLives: ' + game.lives
-    )
-
-    const filter = m => {
-        if (m.author.bot) {return false}
-
-        if (!usersPlaying.includes(m.author.id)) return false;
-
-        if (m.content.length !== 1) {return false}
-
-        return /^[a-zA-Z]$/.test(m.content);
-    }
-
-    const collector = msg.channel.createMessageCollector({
-        filter,
-    })
-
-    collector.on('collect', async (m) => {
-        const game = games.get(msg.guild.id)
-        const guess = m.content.toLowerCase()
-
-        if (game.guessedletters.includes(guess)) {
-            return m.reply("That letter has already been guessed!")
-        }
-        
-        game.guessedletters.push(guess);
-
-        if (!game.word.includes(guess)) {
-            m.reply("Nope! Guessed wrong dumbass!")
-            game.lives--;
-        }
-
-        let displayWord = game.word.split("").map(letter =>
-            game.guessedletters.includes(letter)?letter:":white_large_square: "
-        ).join(" ")
-        
-        if (!displayWord.includes(":white_large_square: ")) {
-            await msg.channel.send('You got it! Congrats!\n **' +game.word+ '**')
-            return finishGame("win")
-        }
-
-        if (game.lives <= 0) {
-            await msg.channel.send("You lost! Dumbass!\nThe word was **" + game.word + "**")
-            return finishGame('lose')
-        }
-
-        await msg.channel.send(displayWord + '\n\nLives: ' + game.lives)
-    })
-
-    collector.on('end', () => {
-        msg.channel.send("Thanks for playing!")
-        finishGame("ended")
-    })
-})}
+}
 
 module.exports = {
     gatherPlayers,
-    hangMan
+    hangMan,
+    isGameActive,
 }
