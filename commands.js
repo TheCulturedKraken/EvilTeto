@@ -593,8 +593,8 @@ async function saySomethingMeanTargetted(msg) {
 
     } catch(err) {
         console.error(err)
-        msg.reply("I fucked up")
         await notifyBossOfError(msg, err)
+        msg.reply("I fucked up")
     }
 }
 
