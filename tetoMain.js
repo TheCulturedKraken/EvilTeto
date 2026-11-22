@@ -9,6 +9,7 @@ const VoiceCommands = require('./voicecommands.js')
 const Hangman = require('./hangman.js')
 const Embedcommand = require('./embedCommand.js')
 const { isPersonalityDisabled, setPersonalityDisabled } = require('./personalityState.js')
+const { getRandomImage } = require('./tetoImages.js')
 
 const Casino = require('./casino/CasinoRouter.js')
 const economyModule = require('./casino/economy.js')
@@ -74,9 +75,11 @@ async function fetchReferencedMessage(msg) {
 const meanRoles = {
     'teto hate': 0.05,          // 5%
     'super teto hate': 0.10,    // 10%
-    'ultra teto hate': 0.25,    // 25%
+    'ultra teto hate': 0.40,    // 40%
     'pure teto spite': 0.90,    // 90%
 }
+
+const tetoImages = {}
 
 /** Highest insult chance among the member's "Teto hate" roles (0 if none). */
 function getMeanChance(member) {
@@ -96,13 +99,25 @@ client.on('messageCreate', msg => {
         if (isPersonalityDisabled(msg.guild.id)) return
 
         const content = msg.content.toLowerCase()
-        if (msg.mentions.has(client.user)) {
+        const isMentioned = msg.mentions.has(client.user)
+        // const isReplyToTeto = msg.mentions.repliedUser?.id === client.user.id
+
+        if (isMentioned) {
             if (content.includes('fuck you')) {
-                msg.reply('I bet you wish you could twerp :v:')
+                const image = getRandomImage()
+                return msg.reply({
+                    content: 'what',
+                    files: image ? [image] : []
+                })
             } else if (content.includes('ily') || content.includes('i love you')) {
-                msg.reply("It's not mutual.")
+                return msg.reply({ content: "It's not mutual." })
             }
         }
+
+        // if (isReplyToTeto) {
+        //     const image = getRandomImage()
+        //     if (image) return msg.reply({ files: [image] })
+        // }
 
         const chance = getMeanChance(msg.member)
         if (chance <= 0 || Busy.get(msg.guild.id)) return
@@ -115,7 +130,6 @@ client.on('messageCreate', msg => {
         msg.reply('I fucked up')
     }
 })
-
 //============================================================================================
 // Command handlers that need more than a one-liner
 //============================================================================================
@@ -340,19 +354,10 @@ const reactionRoles = {
         '💀': '1543095235444351086',
         '👽': '1543095282009378826',
     },
-     
+
     '1550208562897223843': {
         '✅': '1550208300958621906', // Looking for game role
     },
-
-    '1573611712953843865': { //Kress react roles
-        '🎮': '1573593105628921886',
-        '🪽': '1573593178924253195',
-        '🌹': '1573593200050831503',
-        '👮': '1573593217776099430',
-        '🧑‍🏫': '1573593235086123108',
-        '💢': '1550211097892495415',
-    }
 }
 
 // message id -> { emoji -> ticket category id }
